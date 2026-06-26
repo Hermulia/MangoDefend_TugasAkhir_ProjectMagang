@@ -1,14 +1,19 @@
 package com.riset.mangodefendd.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.riset.mangodefendd.ui.viewmodel.ScanViewModel
@@ -20,15 +25,55 @@ fun HistoryScreen(
     onBackClick: () -> Unit = {}
 ) {
     val scanState by scanViewModel.scanState.collectAsState()
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    var isEditMode by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Scan History") },
+            title = { 
+                Text(if (isEditMode) "${selectedIds.size} Selected" else "Scan History") 
+            },
             navigationIcon = {
-                IconButton(onClick = onBackClick) {
+                IconButton(onClick = {
+                    if (isEditMode) {
+                        isEditMode = false
+                        selectedIds = emptySet()
+                    } else {
+                        onBackClick()
+                    }
+                }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                if (scanState.isNotEmpty()) {
+                    if (isEditMode) {
+                        IconButton(onClick = {
+                            if (selectedIds.size == scanState.size) {
+                                selectedIds = emptySet()
+                            } else {
+                                selectedIds = scanState.map { it.id }.toSet()
+                            }
+                        }) {
+                            Icon(Icons.Default.SelectAll, contentDescription = "Select All")
+                        }
+                        IconButton(onClick = {
+                            scanViewModel.deleteHistoryItems(selectedIds.toList())
+                            isEditMode = false
+                            selectedIds = emptySet()
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = Color.Red)
+                        }
+                    } else {
+                        IconButton(onClick = { isEditMode = true }) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = "Edit Mode")
+                        }
+                        IconButton(onClick = { scanViewModel.clearHistory() }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = Color.Red)
+                        }
+                    }
                 }
             }
         )
@@ -49,13 +94,42 @@ fun HistoryScreen(
             } else {
                 LazyColumn {
                     items(scanState) { result ->
-                        ScanResultCard(
-                            fileName = result.fileName,
-                            status = result.status,
-                            malwareScore = result.malwareScore,
-                            benignScore = result.benignScore,
-                            scanDate = result.scanDate
-                        )
+                        val isSelected = selectedIds.contains(result.id)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isEditMode) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = { checked ->
+                                        selectedIds = if (checked) {
+                                            selectedIds + result.id
+                                        } else {
+                                            selectedIds - result.id
+                                        }
+                                    }
+                                )
+                            }
+                            ScanResultCard(
+                                fileName = result.fileName,
+                                status = result.status,
+                                malwareScore = result.malwareScore,
+                                benignScore = result.benignScore,
+                                scanDate = result.scanDate,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        if (isEditMode) {
+                                            selectedIds = if (isSelected) {
+                                                selectedIds - result.id
+                                            } else {
+                                                selectedIds + result.id
+                                            }
+                                        }
+                                    }
+                            )
+                        }
                     }
                 }
             }
@@ -69,21 +143,21 @@ fun ScanResultCard(
     status: String,
     malwareScore: Double,
     benignScore: Double,
-    scanDate: Long
+    scanDate: Long,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .padding(vertical = 8.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(fileName, style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(4.dp))
 
-            val statusColor = when (status) {
-                "Safe" -> MaterialTheme.colorScheme.primary
-                "Suspicious" -> MaterialTheme.colorScheme.tertiary
-                "Dangerous" -> MaterialTheme.colorScheme.error
+            val statusColor = when (status.uppercase()) {
+                "SAFE" -> MaterialTheme.colorScheme.primary
+                "SUSPICIOUS" -> MaterialTheme.colorScheme.tertiary
+                "DANGEROUS" -> MaterialTheme.colorScheme.error
                 else -> MaterialTheme.colorScheme.onSurface
             }
             Text(

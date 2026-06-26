@@ -41,27 +41,28 @@ class RealtimeMonitorService : Service() {
 
         try {
 
-            val dirsToWatch = listOf(
-                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-            )
-            
-            dirsToWatch.forEach { dir ->
-                if (dir?.exists() == true) {
+            val dirsToWatch = mutableListOf<File?>()
+            dirsToWatch.add(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS))
+            dirsToWatch.add(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS))
+            dirsToWatch.add(getExternalFilesDir(null))
+
+            dirsToWatch.filterNotNull().forEach { dir ->
+                if (dir.exists()) {
                     val obs = object : FileObserver(dir.absolutePath, CLOSE_WRITE) {
                         override fun onEvent(event: Int, path: String?) {
-                            if (path == null || repo == null) return
+                            if (path == null) return
                             val f = File(dir, path)
-                            if (f.isFile && f.canRead()) {
+                            
+                            if (f.exists() && f.isFile && f.canRead()) {
                                 scope.launch {
                                     try {
-                                        val r = repo.scanFile(f)
-                                        if (r.status == "Dangerous") {
-                                            // notify
-                                            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                                            nm.notify(r.id.hashCode(), buildNotification("Malware detected: ${r.fileName}"))
+                                        // Wait a tiny bit to ensure file system is ready
+                                        kotlinx.coroutines.delay(500)
+                                        val result = repo.scanFile(f)
+                                        if (result.status == "Dangerous" || result.status == "Suspicious") {
+                                            showDetectionNotification(result.fileName, result.status)
                                         }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
+                                    } catch (_: Exception) {
                                     }
                                 }
                             }
@@ -73,15 +74,27 @@ class RealtimeMonitorService : Service() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            stopSelf()
         }
+    }
+
+    private fun showDetectionNotification(fileName: String, status: String) {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(this, "realtime_channel")
+            .setContentTitle("Threat Detected!")
+            .setContentText("$fileName is marked as $status")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(fileName.hashCode(), notification)
     }
 
     private fun buildNotification(text: String): Notification {
         return NotificationCompat.Builder(this, "realtime_channel")
-            .setContentTitle("MangoDefendd")
+            .setContentTitle("MangoDefend Real-time")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setOngoing(true)
             .build()
     }
 

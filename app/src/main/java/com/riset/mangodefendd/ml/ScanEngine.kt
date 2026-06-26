@@ -10,13 +10,20 @@ object ScanEngine {
     suspend fun gatherFilesUnderRoots(roots: List<File>): List<File> = withContext(Dispatchers.IO) {
         val result = mutableListOf<File>()
         val stack = ArrayDeque<File>()
+        
+        val excludedExtensions = setOf("onnx", "data", "db", "db-shm", "db-wal", "lck", "json")
+        val excludedFiles = setOf("image_model_fixed.onnx", "image_model_fixed.onnx.data")
+
         roots.forEach { if (it.exists()) stack.add(it) }
         while (stack.isNotEmpty()) {
             val f = stack.removeFirst()
             if (f.isDirectory) {
                 f.listFiles()?.forEach { stack.add(it) }
             } else {
-                result.add(f)
+                val ext = f.extension.lowercase()
+                if (ext !in excludedExtensions && f.name !in excludedFiles && !f.name.startsWith("scan-db")) {
+                    result.add(f)
+                }
             }
         }
         result

@@ -19,6 +19,7 @@ object Routes {
     const val Permission = "permission"
     const val Dashboard = "dashboard"
     const val Scan = "scan"
+    const val ScanFolder = "scan_folder"
     const val History = "history"
     const val Subscriptions = "subscriptions"
     const val Profile = "profile"
@@ -51,6 +52,7 @@ fun AppNavHost(
             composable(Routes.Dashboard) {
                 DashboardScreen(
                     onNavigateToScan = { navController.navigate(Routes.Scan) },
+                    onNavigateToScanFolder = { navController.navigate(Routes.ScanFolder) },
                     onNavigateToHistory = { navController.navigate(Routes.History) },
                     onNavigateToSubscriptions = { navController.navigate(Routes.Subscriptions) },
                     onNavigateToProfile = { navController.navigate(Routes.Profile) },
@@ -64,6 +66,11 @@ fun AppNavHost(
 
             composable(Routes.Scan) {
                 ScanScreen(onBackClick = { navController.popBackStack() })
+            }
+
+            composable(Routes.ScanFolder) {
+                // We'll create this screen
+                com.riset.mangodefendd.ui.screens.ScanFolderScreen(onBackClick = { navController.popBackStack() })
             }
 
             composable(Routes.History) {

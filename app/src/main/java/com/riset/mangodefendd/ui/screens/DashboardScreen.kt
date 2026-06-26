@@ -40,6 +40,7 @@ fun DashboardScreen(
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     onNavigateToScan: () -> Unit,
+    onNavigateToScanFolder: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToSubscriptions: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -255,7 +256,7 @@ fun DashboardScreen(
                 ActionCard(
                     label = "Scan Folder",
                     icon = Icons.Filled.Folder,
-                    onClick = { requireLogin(onNavigateToScan) },
+                    onClick = { requireLogin(onNavigateToScanFolder) },
                     modifier = Modifier.weight(1f)
                 )
                 ActionCard(
@@ -272,6 +273,8 @@ fun DashboardScreen(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularScanButton(
                     isScanning = dashboardState.isScanning,
+                    progress = dashboardState.scanProgress,
+                    max = dashboardState.scanProgressMax,
                     onClick = { requireLogin { dashboardViewModel.startTotalScan() } }
                 )
             }
@@ -491,13 +494,15 @@ fun ActionCard(
 @Composable
 fun CircularScanButton(
     isScanning: Boolean,
+    progress: Int,
+    max: Int,
     onClick: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(220.dp)
+            .size(240.dp)
             .drawBehind {
                 drawCircle(
                     brush = Brush.radialGradient(
@@ -505,29 +510,51 @@ fun CircularScanButton(
                     ),
                     radius = size.width / 2
                 )
+                
+                if (isScanning && max > 0) {
+                    drawArc(
+                        color = Color.White,
+                        startAngle = -90f,
+                        sweepAngle = (progress.toFloat() / max * 360f),
+                        useCenter = false,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx()),
+                        size = size.copy(width = 200.dp.toPx(), height = 200.dp.toPx()),
+                        topLeft = Offset((size.width - 200.dp.toPx())/2, (size.height - 200.dp.toPx())/2)
+                    )
+                }
             }
     ) {
         Surface(
             modifier = Modifier
                 .size(160.dp)
-                .clickable { onClick() },
+                .clickable(enabled = !isScanning) { onClick() },
             shape = CircleShape,
-            color = primaryColor,
+            color = if (isScanning) Color.DarkGray else primaryColor,
             shadowElevation = 12.dp
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(modifier = Modifier.size(4.dp).background(Color.Black, CircleShape))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (isScanning) "SCANNING..." else "START FULL SCAN",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )
+                if (isScanning) {
+                    CircularProgressIndicator(color = primaryColor)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "$progress / $max",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White
+                    )
+                } else {
+                    Icon(Icons.Filled.Security, contentDescription = null, tint = Color.Black, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "START FULL SCAN",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

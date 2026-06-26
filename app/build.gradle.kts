@@ -61,7 +61,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     // ONNX Runtime
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.15.1")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.0")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.47")
@@ -80,6 +80,9 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+
+    // DocumentFile for folder scanning
+    implementation("androidx.documentfile:documentfile:1.0.1")
 
     // Firebase BOM for version management
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))

@@ -19,17 +19,34 @@ class ScanViewModel @Inject constructor(
     val scanState: StateFlow<List<ScanResultEntity>> = _scanState
 
     init {
-        loadHistory()
+        // Collect local database flow to always have up-to-date data
+        viewModelScope.launch {
+            repo.getLocalHistoryFlow().collect { localHistory ->
+                _scanState.value = localHistory
+            }
+        }
     }
 
     fun loadHistory() {
         viewModelScope.launch {
             try {
-                val history = repo.getHistory()
-                _scanState.value = history
+                // This will trigger a sync or fetch remote data
+                repo.getHistory()
             } catch (e: Exception) {
                 // Ignore for now
             }
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            repo.clearLocalHistory()
+        }
+    }
+
+    fun deleteHistoryItems(ids: List<String>) {
+        viewModelScope.launch {
+            repo.deleteHistoryItems(ids)
         }
     }
 

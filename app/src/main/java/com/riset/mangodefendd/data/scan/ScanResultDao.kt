@@ -16,5 +16,23 @@ interface ScanResultDao {
 
     @Query("DELETE FROM scan_results")
     suspend fun clearAll()
+
+    @Query("DELETE FROM scan_results WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
+
+    @Query("SELECT COUNT(*) FROM scan_results")
+    fun getTotalCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'DANGEROUS'")
+    fun getMalwareCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'SUSPICIOUS'")
+    fun getSuspiciousCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'SAFE'")
+    fun getSafeCount(): Flow<Int>
+
+    @Query("SELECT MAX(scanDate) FROM scan_results")
+    fun getLastScanTimestamp(): Flow<Long?>
 }
 
