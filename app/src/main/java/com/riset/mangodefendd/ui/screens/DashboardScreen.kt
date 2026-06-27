@@ -71,19 +71,6 @@ fun DashboardScreen(
         }
     }
 
-    // Launcher for Scan File (Quick Action)
-    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
-            val tmp = File(context.cacheDir, "quick_scan_${System.currentTimeMillis()}")
-            try {
-                FileUtils.copyUriToFile(context, uri, tmp)
-                onNavigateToScan() 
-            } catch (e: Exception) {
-                // Handle error
-            }
-        }
-    }
-
     val requireLogin: (() -> Unit) -> Unit = { action ->
         if (authState.isLoggedIn) {
             action()
@@ -293,7 +280,7 @@ fun DashboardScreen(
                 ActionCard(
                     label = "Scan File",
                     icon = Icons.Filled.InsertDriveFile,
-                    onClick = { requireLogin { filePickerLauncher.launch("*/*") } },
+                    onClick = { requireLogin(onNavigateToScan) },
                     modifier = Modifier.weight(1f)
                 )
                 ActionCard(

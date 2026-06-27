@@ -213,8 +213,8 @@ fun PlanCard(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            val uploadLimitStr = if (plan.uploadFileLimit == -1) "Unlimited" else "${plan.uploadFileLimit} files/day"
-            val fullScanLimitStr = if (plan.fullScanLimit == -1) "Unlimited" else "${plan.fullScanLimit} scans/day"
+            val uploadLimitStr = if (plan.uploadFileLimit == 0 || plan.uploadFileLimit == -1) "Unlimited" else "${plan.uploadFileLimit} files/day"
+            val fullScanLimitStr = if (plan.fullScanLimit == 0 || plan.fullScanLimit == -1) "Unlimited" else "${plan.fullScanLimit} scans/day"
             
             Text(
                 text = "Upload Limit: $uploadLimitStr",
@@ -226,11 +226,13 @@ fun PlanCard(
             )
             
             Spacer(modifier = Modifier.height(16.dp))
+            val isFree = (plan.price.toDoubleOrNull() ?: 0.0) == 0.0
             Button(
                 onClick = onCheckoutClick,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isFree
             ) {
-                Text("Buy with QRIS (Simulation)")
+                Text(if (isFree) "Included in Free Plan" else "Buy with QRIS (Simulation)")
             }
         }
     }

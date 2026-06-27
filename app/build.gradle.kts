@@ -105,4 +105,7 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Splash Screen
+    implementation("androidx.core:core-splashscreen:1.2.0")
 }

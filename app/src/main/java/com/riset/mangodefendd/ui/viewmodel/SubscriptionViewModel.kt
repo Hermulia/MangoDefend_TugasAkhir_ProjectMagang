@@ -37,7 +37,13 @@ class SubscriptionViewModel @Inject constructor(
             try {
                 // Fetch all plans
                 val planResponse = apiService.getAllPlans()
-                val plans = if (planResponse.isSuccessful) planResponse.body() ?: emptyList() else emptyList()
+                val plans = if (planResponse.isSuccessful) {
+                    val rawPlans = planResponse.body() ?: emptyList()
+                    // Sort by price (ascending)
+                    rawPlans.sortedBy { it.price.toDoubleOrNull() ?: 0.0 }
+                } else {
+                    emptyList()
+                }
 
                 // Fetch active subscription
                 val userId = tokenManager.getUserId()

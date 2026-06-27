@@ -104,6 +104,15 @@ data class ScanHistoryItem(
     val completedAt: String?
 )
 
+// ML MODELS
+data class MlModelDto(
+    val id: Int,
+    val version: String,
+    @SerializedName("file_path") val filePath: String,
+    val checksum: String,
+    @SerializedName("is_active") val isActive: Boolean
+)
+
 // SUBSCRIPTIONS
 data class PlanDto(
     val id: Int,
@@ -112,7 +121,8 @@ data class PlanDto(
     val price: String, 
     val description: String?,
     @SerializedName("upload_file_limit") val uploadFileLimit: Int?,
-    @SerializedName("full_scan_limit") val fullScanLimit: Int?
+    @SerializedName("full_scan_limit") val fullScanLimit: Int?,
+    val model: MlModelDto? = null
 )
 
 data class SubscriptionDto(

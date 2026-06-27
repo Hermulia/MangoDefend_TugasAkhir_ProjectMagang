@@ -47,21 +47,35 @@ class BinaryImagePreprocessor(private val context: Context, private val options:
 
         // Case 2: File is a binary (APK, EXE, etc.). Use raw byte sampling.
         val totalPixels = size * size
-        val bytes = file.readBytes()
-        val len = bytes.size
+        val len = file.length()
         val step = maxOf(1.0, len.toDouble() / totalPixels)
         
-        for (i in 0 until totalPixels) {
-            val byteIndex = (i * step).toInt().coerceAtMost(maxOf(0, len - 1))
-            val b = if (len > 0) (bytes[byteIndex].toInt() and 0xFF) else 0
-            val v = if (options.normalizeToZeroOne) b / 255f else b.toFloat()
-            
-            val y = i / size
-            val x = i % size
-            
-            result[0][0][y][x] = v
-            result[0][1][y][x] = v
-            result[0][2][y][x] = v
+        file.inputStream().use { input ->
+            for (i in 0 until totalPixels) {
+                val targetByteIndex = (i * step).toLong().coerceAtMost(maxOf(0L, len - 1))
+                // This is a naive sampling: we skip to the target byte.
+                // In a real app, you might want to read chunks or use a more efficient way to sample.
+                // But for 224x224 = 50,176 pixels, this is manageable if we don't reload the file.
+                
+                // For efficiency, we should seek if possible, but InputStream doesn't support seek.
+                // However, we are moving forward, so we can skip.
+                // Wait, (i * step) is always increasing. So we can skip the difference.
+                val currentPos = (if (i == 0) 0 else ((i - 1) * step).toLong()).coerceAtMost(maxOf(0L, len - 1))
+                val toSkip = targetByteIndex - currentPos
+                if (toSkip > 0) {
+                    input.skip(toSkip)
+                }
+                
+                val b = input.read().let { if (it == -1) 0 else it }
+                val v = if (options.normalizeToZeroOne) b / 255f else b.toFloat()
+                
+                val y = i / size
+                val x = i % size
+                
+                result[0][0][y][x] = v
+                result[0][1][y][x] = v
+                result[0][2][y][x] = v
+            }
         }
         
         return result
