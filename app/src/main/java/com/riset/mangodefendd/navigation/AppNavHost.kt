@@ -13,6 +13,7 @@ import com.riset.mangodefendd.ui.screens.LoginScreen
 import com.riset.mangodefendd.ui.screens.PermissionRequestScreen
 import com.riset.mangodefendd.ui.screens.ProfileScreen
 import com.riset.mangodefendd.ui.screens.ScanScreen
+import com.riset.mangodefendd.ui.screens.TransactionHistoryScreen
 
 object Routes {
     const val Login = "login"
@@ -22,6 +23,7 @@ object Routes {
     const val ScanFolder = "scan_folder"
     const val History = "history"
     const val Subscriptions = "subscriptions"
+    const val Transactions = "transactions"
     const val Profile = "profile"
 }
 
@@ -74,6 +76,10 @@ fun AppNavHost(
                 com.riset.mangodefendd.ui.screens.SubscriptionScreen(onNavigateBack = { navController.popBackStack() })
             }
 
+            composable(Routes.Transactions) {
+                TransactionHistoryScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
             composable(Routes.Profile) {
                 ProfileScreen(
                     onNavigateToHome = {
@@ -83,6 +89,7 @@ fun AppNavHost(
                     },
                     onNavigateToHistory = { navController.navigate(Routes.History) },
                     onNavigateToPricing = { navController.navigate(Routes.Subscriptions) },
+                    onNavigateToTransactions = { navController.navigate(Routes.Transactions) },
                     onLogout = {
                         // When logout, we just stay on dashboard but in guest mode
                         navController.navigate(Routes.Dashboard) {

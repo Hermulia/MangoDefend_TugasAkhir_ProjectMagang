@@ -37,6 +37,7 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToPricing: () -> Unit,
+    onNavigateToTransactions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
@@ -304,27 +305,26 @@ fun ProfileScreen(
                                 color = Color.Gray
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "SCAN LIMIT: ${uiState.activeSubscription?.plan?.fullScanLimit ?: 0}/DAY",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "UPLOAD LIMIT: ${uiState.activeSubscription?.plan?.uploadFileLimit ?: 0}/DAY",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                     }
-                    Button(
-                        onClick = onNavigateToPricing,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Manage", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Button(
+                            onClick = onNavigateToPricing,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Manage", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = onNavigateToTransactions,
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text("History", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             }

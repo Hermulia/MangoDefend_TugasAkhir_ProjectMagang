@@ -39,6 +39,9 @@ interface ApiService {
     @POST("transactions/webhook/success/{id}")
     suspend fun simulatePaymentSuccess(@Path("id") transactionId: Int): Response<TransactionResponseDto>
 
+    @GET("transactions/history/{userId}")
+    suspend fun getTransactionHistory(@Path("userId") userId: Int): Response<TransactionHistoryResponse>
+
     // PROFILE
     @GET("users/{id}")
     suspend fun getProfile(@Path("id") userId: Int): Response<UserProfileResponse>

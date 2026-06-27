@@ -138,11 +138,21 @@ data class TransactionResponseDto(
     val data: TransactionDto
 )
 
+data class TransactionHistoryResponse(
+    val status: String,
+    val message: String,
+    val data: List<TransactionDto>
+)
+
 data class TransactionDto(
     val id: Int,
     @SerializedName("user_id") val userId: Int,
     @SerializedName("plan_id") val planId: Int,
+    @SerializedName("external_id") val externalId: String?,
     val amount: String,
-    val method: String,
-    val status: String
+    val method: String?,
+    val status: String,
+    @SerializedName("created_at") val createdAt: String?,
+    @SerializedName("update_at") val updatedAt: String?,
+    val plan: PlanDto? = null
 )
