@@ -310,10 +310,10 @@ fun ScanScreen(
                         
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = String.format("%.1f%%", benign),
+                                text = if (lastResult == null) "0.0%" else String.format("%.1f%%", benign),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = if (lastResult == null) Color.Gray else Color.White
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
@@ -325,9 +325,9 @@ fun ScanScreen(
                         }
                         
                         Text(
-                            text = String.format("%.1f%% Malware", malware),
+                            text = if (lastResult == null) "0.0% Malware" else String.format("%.1f%% Malware", malware),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MalwareRed.copy(alpha = 0.8f),
+                            color = if (lastResult == null) Color.Gray else MalwareRed.copy(alpha = 0.8f),
                             fontSize = 10.sp
                         )
                     }
@@ -339,10 +339,10 @@ fun ScanScreen(
                     ) {
                         Text("Status", style = MaterialTheme.typography.labelSmall, fontSize = 8.sp, color = Color.Gray)
                         Text(
-                            if (lastResult?.status == "Safe" || lastResult == null) "Secure" else lastResult?.status ?: "N/A",
+                            text = if (lastResult == null) "-" else if (lastResult?.status == "Safe") "Secure" else lastResult?.status ?: "N/A",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (lastResult?.status == "Safe" || lastResult == null) NeonGreen else Color.White
+                            color = if (lastResult == null) Color.Gray else if (lastResult?.status == "Safe") NeonGreen else Color.White
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(
@@ -351,12 +351,12 @@ fun ScanScreen(
                                 .height(4.dp)
                                 .background(Color.DarkGray.copy(alpha = 0.5f), CircleShape)
                         ) {
-                            val progress = if (lastResult == null) 1f else (benign / 100).toFloat()
+                            val progress = if (lastResult == null) 0f else (benign / 100).toFloat()
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
                                     .fillMaxWidth(progress)
-                                    .background(NeonGreen, CircleShape)
+                                    .background(if (lastResult == null) Color.DarkGray else NeonGreen, CircleShape)
                             )
                         }
                     }
