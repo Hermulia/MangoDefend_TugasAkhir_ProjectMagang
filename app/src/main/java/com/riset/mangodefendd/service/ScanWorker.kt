@@ -19,20 +19,45 @@ class ScanWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
         return try {
+            // Initial progress to show we've started
+            setProgressAsync(androidx.work.workDataOf("scanned" to 0, "total" to -1))
+
             val roots = mutableListOf<File>()
             
-            // Only scan user-relevant directories, avoid scanning app's own internal data/cache
+            // 1. Gather files from public directories
             val external = Environment.getExternalStorageDirectory()
             if (external.exists()) {
-                roots.add(File(external, "Download"))
-                roots.add(File(external, "Documents"))
-                roots.add(File(external, "DCIM"))
+                listOf("Download", "Documents", "DCIM", "Pictures", "Movies", "Music").forEach {
+                    val folder = File(external, it)
+                    if (folder.exists()) roots.add(folder)
+                }
             }
 
-            val files = ScanEngine.gatherFilesUnderRoots(roots)
-            repo.scanFiles(files) { scanned, total ->
+            // 2. Gather files from those roots
+            val filesToScan = ScanEngine.gatherFilesUnderRoots(roots).toMutableList()
+            
+            // 3. Add Installed APKs
+            val apks = ScanEngine.gatherInstalledApkFiles(applicationContext)
+            filesToScan.addAll(apks)
+
+            // If still empty, add own APK as fallback
+            if (filesToScan.isEmpty()) {
+                val packageInfo = applicationContext.packageManager.getPackageInfo(applicationContext.packageName, 0)
+                packageInfo.applicationInfo?.sourceDir?.let {
+                    filesToScan.add(File(it))
+                }
+            }
+
+            if (filesToScan.isEmpty()) {
+                setProgressAsync(androidx.work.workDataOf("scanned" to 0, "total" to 0))
+                return Result.success()
+            }
+
+            // 4. Perform the scan
+            repo.scanFiles(filesToScan) { scanned, total ->
                 setProgressAsync(androidx.work.workDataOf("scanned" to scanned, "total" to total))
             }
+
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()

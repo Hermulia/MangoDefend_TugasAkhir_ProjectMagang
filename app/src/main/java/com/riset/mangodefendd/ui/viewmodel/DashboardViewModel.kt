@@ -114,9 +114,10 @@ class DashboardViewModel @Inject constructor(
         val activeSub = _dashboardState.value.activeSubscription
         val limit = activeSub?.plan?.fullScanLimit ?: 1 // Default 1 for guest/free if not specified
         
-        // In a real app, we'd check if (currentDayScans >= limit)
-        // For this sync, we just demonstrate the limit awareness
-        if (limit == 0) {
+        // 999 is Unlimited
+        if (limit == 999) {
+            // Proceed to start scan
+        } else if (limit == 0) {
             onLimitReached()
             return
         }
