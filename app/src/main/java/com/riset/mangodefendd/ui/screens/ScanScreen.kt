@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.riset.mangodefendd.data.scan.ScanResultEntity
@@ -82,7 +83,9 @@ fun ScanScreen(
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             isScanningInternal = true
-            val tmp = File(context.cacheDir, "picked_${System.currentTimeMillis()}")
+            val documentFile = DocumentFile.fromSingleUri(context, uri)
+            val fileName = documentFile?.name ?: "picked_${System.currentTimeMillis()}"
+            val tmp = File(context.cacheDir, fileName)
             try {
                 FileUtils.copyUriToFile(context, uri, tmp)
                 viewModel.scanSingleFile(tmp) { res ->
