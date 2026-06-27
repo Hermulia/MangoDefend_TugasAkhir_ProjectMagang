@@ -275,7 +275,13 @@ fun DashboardScreen(
                     isScanning = dashboardState.isScanning,
                     progress = dashboardState.scanProgress,
                     max = dashboardState.scanProgressMax,
-                    onClick = { requireLogin { dashboardViewModel.startTotalScan() } }
+                    onClick = { 
+                        if (dashboardState.isScanning) {
+                            dashboardViewModel.stopTotalScan()
+                        } else {
+                            requireLogin { dashboardViewModel.startTotalScan() }
+                        }
+                    }
                 )
             }
 
@@ -527,7 +533,7 @@ fun CircularScanButton(
         Surface(
             modifier = Modifier
                 .size(160.dp)
-                .clickable(enabled = !isScanning) { onClick() },
+                .clickable { onClick() },
             shape = CircleShape,
             color = if (isScanning) Color.DarkGray else primaryColor,
             shadowElevation = 12.dp
@@ -540,7 +546,13 @@ fun CircularScanButton(
                     CircularProgressIndicator(color = primaryColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "$progress / $max",
+                        text = "STOP SCAN",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (max > 0) "$progress / $max" else "Preparing...",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White
                     )

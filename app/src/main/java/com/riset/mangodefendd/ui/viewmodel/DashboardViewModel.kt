@@ -63,9 +63,15 @@ class DashboardViewModel @Inject constructor(
 
     fun startTotalScan() {
         viewModelScope.launch {
-            _dashboardState.update { it.copy(isScanning = true) }
+            _dashboardState.update { 
+                it.copy(
+                    isScanning = true,
+                    scanProgress = 0,
+                    scanProgressMax = 0
+                )
+            }
             val scanWorkRequest = OneTimeWorkRequestBuilder<ScanWorker>().build()
-            workManager.enqueueUniqueWork("total_scan", androidx.work.ExistingWorkPolicy.KEEP, scanWorkRequest)
+            workManager.enqueueUniqueWork("total_scan", androidx.work.ExistingWorkPolicy.REPLACE, scanWorkRequest)
             
             // Monitor progress (simplified)
             workManager.getWorkInfoByIdLiveData(scanWorkRequest.id).observeForever { workInfo ->
@@ -88,6 +94,17 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun stopTotalScan() {
+        workManager.cancelUniqueWork("total_scan")
+        _dashboardState.update { 
+            it.copy(
+                isScanning = false,
+                scanProgress = 0,
+                scanProgressMax = 0
+            ) 
         }
     }
 
