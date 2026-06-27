@@ -1,14 +1,18 @@
 package com.riset.mangodefendd.ui.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.riset.mangodefendd.auth.AuthenticationManager
 import com.riset.mangodefendd.auth.AuthUser
 import com.riset.mangodefendd.auth.TokenManager
 import com.riset.mangodefendd.data.network.ApiService
 import com.riset.mangodefendd.data.network.dto.FirebaseLoginDto
 import com.riset.mangodefendd.data.network.dto.FirebaseSessionDevice
+import com.riset.mangodefendd.ml.MalwareRepository
+import com.riset.mangodefendd.service.RealtimeMonitorService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +32,9 @@ class AuthViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authManager: AuthenticationManager,
     private val apiService: ApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val repo: MalwareRepository,
+    private val workManager: WorkManager
 ) : ViewModel() {
     private val _authState = MutableStateFlow(
         AuthUiState(
@@ -70,10 +76,24 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signOut() {
-        authManager.signOut()
-        tokenManager.clearToken()
-        tokenManager.clearUserId()
-        _authState.value = AuthUiState(isLoggedIn = false, user = null)
+        viewModelScope.launch {
+            // Hentikan scan yang sedang berjalan
+            workManager.cancelUniqueWork("total_scan")
+
+            // Hentikan perlindungan real-time
+            try {
+                val intent = Intent(context, RealtimeMonitorService::class.java)
+                context.stopService(intent)
+            } catch (e: Exception) {
+                // Abaikan jika gagal berhenti
+            }
+
+            authManager.signOut()
+            tokenManager.clearToken()
+            tokenManager.clearUserId()
+            repo.clearLocalHistory()
+            _authState.value = AuthUiState(isLoggedIn = false, user = null)
+        }
     }
 
     fun getSignInIntent() = authManager.getSignInIntent()

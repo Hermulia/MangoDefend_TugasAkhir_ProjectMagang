@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.riset.mangodefendd.auth.TokenManager
 import com.riset.mangodefendd.data.network.ApiService
+import com.riset.mangodefendd.data.network.dto.SubscriptionDto
 import com.riset.mangodefendd.data.network.dto.UpdateProfileRequest
 import com.riset.mangodefendd.data.network.dto.UserProfileDto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import javax.inject.Inject
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val profile: UserProfileDto? = null,
+    val activeSubscription: SubscriptionDto? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isSaving: Boolean = false
@@ -38,16 +40,26 @@ class ProfileViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
             try {
-                val response = apiService.getProfile(userId)
-                if (response.isSuccessful && response.body() != null) {
+                // Fetch Profile
+                val profileResponse = apiService.getProfile(userId)
+                
+                // Fetch Active Subscription
+                val subResponse = apiService.getActiveSubscription(userId)
+                val activeSub = if (subResponse.isSuccessful) {
+                    subResponse.body()?.firstOrNull { it.isActive }
+                } else null
+
+                if (profileResponse.isSuccessful && profileResponse.body() != null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        profile = response.body()!!.data
+                        profile = profileResponse.body()!!.data,
+                        activeSubscription = activeSub
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Gagal memuat profil: ${response.code()}"
+                        errorMessage = "Gagal memuat profil: ${profileResponse.code()}",
+                        activeSubscription = activeSub
                     )
                 }
             } catch (e: Exception) {

@@ -2,6 +2,7 @@ package com.riset.mangodefendd.ui.screens
 
 import android.app.Activity
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -17,22 +18,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.DashboardViewModel
 import com.riset.mangodefendd.util.FileUtils
+import kotlinx.coroutines.delay
 import java.io.File
 
 @Composable
@@ -72,7 +77,7 @@ fun DashboardScreen(
             val tmp = File(context.cacheDir, "quick_scan_${System.currentTimeMillis()}")
             try {
                 FileUtils.copyUriToFile(context, uri, tmp)
-                onNavigateToScan() // Navigate to scan screen where the logic usually lives or handle here
+                onNavigateToScan() 
             } catch (e: Exception) {
                 // Handle error
             }
@@ -171,12 +176,33 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { /* Settings */ }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.Gray)
                     }
-                    IconButton(onClick = { onNavigateToProfile() }) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile", tint = Color.Gray, modifier = Modifier.size(32.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color.DarkGray)
+                            .clickable { onNavigateToProfile() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (authState.isLoggedIn) {
+                            AsyncImage(
+                                model = authState.user?.photoUrl,
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.AccountCircle,
+                                contentDescription = "Profile",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -185,12 +211,12 @@ fun DashboardScreen(
 
             // Welcome
             Text(
-                text = "Welcome back,",
+                text = if (authState.isLoggedIn) "Welcome back, ${authState.user?.displayName?.split(" ")?.firstOrNull() ?: "User"}!" else "Welcome to MangoDefend",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "System status: ",
                     style = MaterialTheme.typography.bodyLarge,
@@ -202,6 +228,23 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
+                
+                if (authState.isLoggedIn) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    val planName = dashboardState.activeSubscription?.plan?.planName ?: "Free"
+                    Surface(
+                        color = if (dashboardState.activeSubscription != null) MaterialTheme.colorScheme.primary else Color.Gray,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = planName.uppercase(),
+                            color = Color.Black,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -262,7 +305,13 @@ fun DashboardScreen(
                 ActionCard(
                     label = "Full System",
                     icon = Icons.Filled.Security,
-                    onClick = { requireLogin { dashboardViewModel.startTotalScan() } },
+                    onClick = { 
+                        requireLogin { 
+                            dashboardViewModel.startTotalScan(onLimitReached = {
+                                Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
+                            }) 
+                        } 
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -279,7 +328,11 @@ fun DashboardScreen(
                         if (dashboardState.isScanning) {
                             dashboardViewModel.stopTotalScan()
                         } else {
-                            requireLogin { dashboardViewModel.startTotalScan() }
+                            requireLogin { 
+                                dashboardViewModel.startTotalScan(onLimitReached = {
+                                    Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
+                                }) 
+                            }
                         }
                     }
                 )
@@ -289,7 +342,7 @@ fun DashboardScreen(
             var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(key1 = dashboardState.lastScanTimestamp) {
                 while (true) {
-                    kotlinx.coroutines.delay(60000) // Update every minute
+                    delay(60000) // Update every minute
                     currentTime = System.currentTimeMillis()
                 }
             }
@@ -355,26 +408,6 @@ fun DashboardScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Logout/Login Button
-            if (!authState.isLoggedIn) {
-                Button(
-                    onClick = { googleLauncher.launch(authViewModel.getSignInIntent()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Login with Google", color = Color.Black)
-                }
-            } else {
-                 TextButton(
-                    onClick = { authViewModel.signOut(); onLogout() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Logout", color = Color.Red)
-                }
-            }
         }
     }
 
@@ -386,7 +419,7 @@ fun DashboardScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showLoginPrompt = false
-                    googleLauncher.launch(authViewModel.getSignInIntent())
+                    onNavigateToProfile() // Redirect to profile to login
                 }) {
                     Text("Login Now")
                 }

@@ -14,7 +14,8 @@ import kotlin.coroutines.resumeWithException
 data class AuthUser(
     val uid: String,
     val email: String?,
-    val displayName: String?
+    val displayName: String?,
+    val photoUrl: String? = null
 )
 
 @Singleton
@@ -42,7 +43,8 @@ class AuthenticationManager @Inject constructor(
             AuthUser(
                 uid = firebaseUser.uid,
                 email = firebaseUser.email,
-                displayName = firebaseUser.displayName
+                displayName = firebaseUser.displayName,
+                photoUrl = firebaseUser.photoUrl?.toString()
             )
         } else null
     }
@@ -62,7 +64,8 @@ class AuthenticationManager @Inject constructor(
                                 AuthUser(
                                     uid = firebaseUser.uid,
                                     email = firebaseUser.email,
-                                    displayName = firebaseUser.displayName
+                                    displayName = firebaseUser.displayName,
+                                    photoUrl = firebaseUser.photoUrl?.toString()
                                 ),
                                 token
                             )

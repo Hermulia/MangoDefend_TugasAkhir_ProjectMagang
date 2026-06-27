@@ -62,7 +62,10 @@ fun LoginScreen(
 
         // Guest Mode
         Button(
-            onClick = { onLoginSuccess() },
+            onClick = { 
+                authViewModel.signOut() // Ensure data is cleared when entering guest mode
+                onLoginSuccess() 
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)

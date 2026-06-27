@@ -1,313 +1,365 @@
 package com.riset.mangodefendd.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
+import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.ProfileViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: ProfileViewModel = hiltViewModel()
+    onNavigateToHome: () -> Unit,
+    onNavigateToHistory: () -> Unit,
+    onNavigateToPricing: () -> Unit,
+    onLogout: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    var editMode by remember { mutableStateOf(false) }
-    var nameInput by remember { mutableStateOf("") }
-    var photoUrlInput by remember { mutableStateOf("") }
-
-    // Sinkronisasi data dari API ke input field ketika profil berhasil dimuat
-    LaunchedEffect(uiState.profile) {
-        uiState.profile?.let { profile ->
-            nameInput = profile.displayName ?: ""
-            photoUrlInput = profile.photoUrl ?: ""
+    val googleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                account?.idToken?.let { token ->
+                    authViewModel.signInWithGoogle(token)
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
         }
     }
 
-    // Tampilkan Snackbar saat ada pesan sukses
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMessages()
-            editMode = false
+    // Muat profil saat pertama kali masuk atau saat status login berubah
+    LaunchedEffect(authState.isLoggedIn) {
+        if (authState.isLoggedIn) {
+            viewModel.loadProfile()
         }
-    }
-
-    // Muat profil saat pertama kali masuk
-    LaunchedEffect(Unit) {
-        viewModel.loadProfile()
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Profil Saya") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (!editMode) {
-                        IconButton(onClick = { editMode = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit")
-                        }
-                    } else {
-                        IconButton(
-                            onClick = {
-                                viewModel.updateProfile(nameInput, photoUrlInput)
-                            },
-                            enabled = !uiState.isSaving
-                        ) {
-                            if (uiState.isSaving) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Default.Check, contentDescription = "Save")
-                            }
-                        }
-                    }
-                }
-            )
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = Color.White
+            ) {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHome,
+                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                    label = { Text("Home") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray,
+                        indicatorColor = Color.Transparent
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHistory,
+                    icon = { Icon(Icons.Filled.History, contentDescription = "History") },
+                    label = { Text("History") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray,
+                        indicatorColor = Color.Transparent
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToPricing,
+                    icon = { Icon(Icons.Filled.Payments, contentDescription = "Pricing") },
+                    label = { Text("Pricing") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray,
+                        indicatorColor = Color.Transparent
+                    )
+                )
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { },
+                    icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray,
+                        indicatorColor = Color.Transparent
+                    )
+                )
+            }
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CircularProgressIndicator()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.Security,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "My Profile",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Profile Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                // Header gradient dengan avatar
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primaryContainer
-                                )
-                            )
-                        )
-                        .padding(vertical = 36.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Avatar
+                    // Profile Image with Ring and Badge
+                    Box(contentAlignment = Alignment.BottomCenter) {
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(3.dp, Color.White, CircleShape),
+                                .size(120.dp)
+                                .drawBehind {
+                                    drawCircle(
+                                        brush = Brush.sweepGradient(
+                                            colors = listOf(
+                                                primaryColor,
+                                                Color.Transparent,
+                                                primaryColor
+                                            )
+                                        ),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx())
+                                    )
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            val photoUrl = uiState.profile?.photoUrl
-                            if (!photoUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = photoUrl,
-                                    contentDescription = "Profile Photo",
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(80.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .size(105.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.DarkGray)
+                            ) {
+                                if (authState.isLoggedIn) {
+                                    AsyncImage(
+                                        model = uiState.profile?.photoUrl ?: authState.user?.photoUrl,
+                                        contentDescription = "Profile Photo",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Filled.AccountCircle, 
+                                        contentDescription = null, 
+                                        modifier = Modifier.fillMaxSize(),
+                                        tint = Color.Gray
+                                    )
+                                }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = uiState.profile?.displayName ?: uiState.profile?.email ?: "Pengguna",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = uiState.profile?.email ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Badge role
-                        val role = uiState.profile?.role?.replaceFirstChar { it.uppercase() } ?: ""
-                        if (role.isNotBlank()) {
+                        
+                        // Pro Badge
+                        if (authState.isLoggedIn && uiState.activeSubscription != null) {
                             Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.2f)
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.offset(y = 8.dp)
                             ) {
                                 Text(
-                                    text = role,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = uiState.activeSubscription?.plan?.planName?.uppercase() ?: "PRO",
+                                    color = Color.Black,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = if (authState.isLoggedIn) (uiState.profile?.displayName ?: authState.user?.displayName ?: "User Name") else "Guest Mode",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (authState.isLoggedIn) (uiState.profile?.email ?: authState.user?.email ?: "user@email.com") else "Not logged in",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-                // Form fields
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Text(
+                "Subscription",
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Subscription Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            "Informasi Profil",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = nameInput,
-                            onValueChange = { nameInput = it },
-                            label = { Text("Nama Tampilan") },
-                            enabled = editMode,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedTextField(
-                            value = uiState.profile?.email ?: "",
-                            onValueChange = {},
-                            label = { Text("Email") },
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedTextField(
-                            value = photoUrlInput,
-                            onValueChange = { photoUrlInput = it },
-                            label = { Text("URL Foto Profil") },
-                            enabled = editMode,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            placeholder = { Text("https://...", color = Color.Gray) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-                        )
-
-                        if (editMode) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        editMode = false
-                                        // Reset ke data dari server
-                                        uiState.profile?.let {
-                                            nameInput = it.displayName ?: ""
-                                            photoUrlInput = it.photoUrl ?: ""
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Batal")
-                                }
-                                Button(
-                                    onClick = { viewModel.updateProfile(nameInput, photoUrlInput) },
-                                    enabled = !uiState.isSaving,
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    if (uiState.isSaving) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(18.dp),
-                                            strokeWidth = 2.dp,
-                                            color = Color.White
-                                        )
-                                    } else {
-                                        Text("Simpan")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Pesan error
-                uiState.errorMessage?.let { err ->
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                            .size(48.dp)
+                            .background(Color(0xFF0F3D1F), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Icon(Icons.Filled.Stars, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = err,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall
+                            text = uiState.activeSubscription?.plan?.planName ?: "Free Plan",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val isActive = uiState.activeSubscription?.isActive == true
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(
+                                        if (isActive) MaterialTheme.colorScheme.primary else Color.Gray,
+                                        CircleShape
+                                    )
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = uiState.activeSubscription?.status?.uppercase() ?: "INACTIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isActive) MaterialTheme.colorScheme.primary else Color.Gray,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        uiState.activeSubscription?.endDate?.let { endDate ->
+                            Text(
+                                text = "UNTIL: ${endDate.substringBefore("T")}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Gray
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "SCAN LIMIT: ${uiState.activeSubscription?.plan?.fullScanLimit ?: 0}/DAY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "UPLOAD LIMIT: ${uiState.activeSubscription?.plan?.uploadFileLimit ?: 0}/DAY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
+                    Button(
+                        onClick = onNavigateToPricing,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("Manage", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                    }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Login/Logout Button
+            Button(
+                onClick = { 
+                    if (authState.isLoggedIn) {
+                        authViewModel.signOut()
+                        onLogout()
+                    } else {
+                        googleLauncher.launch(authViewModel.getSignInIntent())
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.DarkGray),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (authState.isLoggedIn) Icons.Filled.ExitToApp else Icons.AutoMirrored.Filled.Login, 
+                        contentDescription = null, 
+                        tint = if (authState.isLoggedIn) Color.Red else MaterialTheme.colorScheme.primary, 
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        if (authState.isLoggedIn) "Logout" else "Login with Google", 
+                        color = if (authState.isLoggedIn) Color.Red else MaterialTheme.colorScheme.primary, 
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

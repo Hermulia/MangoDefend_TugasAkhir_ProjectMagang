@@ -29,26 +29,10 @@ object Routes {
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Routes.Login
+    startDestination: String = Routes.Dashboard
 ) {
     Surface(modifier = modifier) {
         NavHost(navController = navController, startDestination = startDestination) {
-            composable(Routes.Login) {
-                LoginScreen(onLoginSuccess = {
-                    navController.navigate(Routes.Permission) {
-                        popUpTo(Routes.Login) { inclusive = true }
-                    }
-                })
-            }
-
-            composable(Routes.Permission) {
-                PermissionRequestScreen(onPermissionGranted = {
-                    navController.navigate(Routes.Dashboard) {
-                        popUpTo(Routes.Permission) { inclusive = true }
-                    }
-                })
-            }
-
             composable(Routes.Dashboard) {
                 DashboardScreen(
                     onNavigateToScan = { navController.navigate(Routes.Scan) },
@@ -57,11 +41,20 @@ fun AppNavHost(
                     onNavigateToSubscriptions = { navController.navigate(Routes.Subscriptions) },
                     onNavigateToProfile = { navController.navigate(Routes.Profile) },
                     onLogout = {
-                        navController.navigate(Routes.Login) {
-                            popUpTo(Routes.Login) { inclusive = true }
+                        // When logout, we just stay on dashboard but in guest mode
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Dashboard) { inclusive = true }
                         }
                     }
                 )
+            }
+
+            composable(Routes.Login) {
+                LoginScreen(onLoginSuccess = {
+                    navController.navigate(Routes.Dashboard) {
+                        popUpTo(Routes.Login) { inclusive = true }
+                    }
+                })
             }
 
             composable(Routes.Scan) {
@@ -82,7 +75,21 @@ fun AppNavHost(
             }
 
             composable(Routes.Profile) {
-                ProfileScreen(onNavigateBack = { navController.popBackStack() })
+                ProfileScreen(
+                    onNavigateToHome = {
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Dashboard) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHistory = { navController.navigate(Routes.History) },
+                    onNavigateToPricing = { navController.navigate(Routes.Subscriptions) },
+                    onLogout = {
+                        // When logout, we just stay on dashboard but in guest mode
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Dashboard) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
