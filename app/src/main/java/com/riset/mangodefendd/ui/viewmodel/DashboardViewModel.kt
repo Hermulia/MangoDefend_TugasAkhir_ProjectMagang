@@ -49,6 +49,7 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadSubscription()
+        checkServiceStatus()
         // Monitor Stats from Database
         viewModelScope.launch {
             combine(
@@ -151,6 +152,17 @@ class DashboardViewModel @Inject constructor(
             context.stopService(intent)
             _dashboardState.update { it.copy(isRealtimeActive = false) }
         }
+    }
+
+    private fun checkServiceStatus() {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (RealtimeMonitorService::class.java.name == service.service.className) {
+                _dashboardState.update { it.copy(isRealtimeActive = true) }
+                return
+            }
+        }
+        _dashboardState.update { it.copy(isRealtimeActive = false) }
     }
 
     fun updateStats(scanned: Int, malware: Int, suspicious: Int, safe: Int) {

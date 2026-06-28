@@ -1,6 +1,7 @@
 package com.riset.mangodefendd.ui.screens
 
 import android.app.Activity
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -385,7 +386,17 @@ fun DashboardScreen(
                     Switch(
                         checked = dashboardState.isRealtimeActive,
                         onCheckedChange = { enabled ->
-                            requireLogin { dashboardViewModel.toggleRealtimeProtection(enabled) }
+                            requireLogin { 
+                                if (enabled) {
+                                    if (PermissionUtils.hasStoragePermission(context)) {
+                                        dashboardViewModel.toggleRealtimeProtection(true)
+                                    } else {
+                                        navController.navigate(Routes.Permission)
+                                    }
+                                } else {
+                                    dashboardViewModel.toggleRealtimeProtection(false)
+                                }
+                            }
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
