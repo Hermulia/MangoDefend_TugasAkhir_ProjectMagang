@@ -28,9 +28,9 @@ import java.util.*
 // Colors based on the provided design image
 val DarkBg = Color(0xFF0B0E14)
 val CardBg = Color(0xFF151A23)
-val BrandGreen = Color(0xFF10C17D)
+val BrandGreen = Color(0xFF00FF41)
 val BrandGrey = Color(0xFF8A8D91)
-val BrandRed = Color(0xFFE53935)
+val BrandRed = Color(0xFFC62828)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

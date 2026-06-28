@@ -1,11 +1,12 @@
 package com.riset.mangodefendd.ui.screens
 
 import android.app.Activity
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -31,16 +34,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
-import androidx.navigation.NavController
 import com.riset.mangodefendd.navigation.Routes
 import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.DashboardViewModel
-import com.riset.mangodefendd.util.FileUtils
+import com.riset.mangodefendd.util.PermissionUtils
 import kotlinx.coroutines.delay
-import java.io.File
+import java.util.Locale
+
+// Reusing colors defined for History but ensuring they match Dashboard
+val DashDarkBg = Color(0xFF0B0E14)
+val DashCardBg = Color(0xFF151A23)
+val DashGreen = Color(0xFF00FF41)
+val DashGrey = Color(0xFF8A8D91)
+val DashRed = Color(0xFFC62828)
+val DashYellow = Color(0xFFFBC02D)
+val DashBlue = Color(0xFF0277BD)
 
 @Composable
 fun DashboardScreen(
@@ -83,22 +95,24 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        containerColor = DashDarkBg,
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = Color.White
+                containerColor = DashDarkBg,
+                contentColor = Color.White,
+                tonalElevation = 8.dp
             ) {
                 NavigationBarItem(
                     selected = true,
                     onClick = { },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
+                    icon = { Icon(Icons.Filled.Security, contentDescription = "Protect") },
+                    label = { Text("Protect") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray,
-                        indicatorColor = Color.Transparent
+                        selectedIconColor = DashGreen,
+                        selectedTextColor = DashGreen,
+                        unselectedIconColor = DashGrey,
+                        unselectedTextColor = DashGrey,
+                        indicatorColor = DashGreen.copy(alpha = 0.1f)
                     )
                 )
                 NavigationBarItem(
@@ -107,8 +121,8 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Filled.History, contentDescription = "History") },
                     label = { Text("History") },
                     colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray,
+                        unselectedIconColor = DashGrey,
+                        unselectedTextColor = DashGrey,
                         indicatorColor = Color.Transparent
                     )
                 )
@@ -118,8 +132,8 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Filled.Payments, contentDescription = "Pricing") },
                     label = { Text("Pricing") },
                     colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray,
+                        unselectedIconColor = DashGrey,
+                        unselectedTextColor = DashGrey,
                         indicatorColor = Color.Transparent
                     )
                 )
@@ -129,8 +143,8 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
                     label = { Text("Profile") },
                     colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray,
+                        unselectedIconColor = DashGrey,
+                        unselectedTextColor = DashGrey,
                         indicatorColor = Color.Transparent
                     )
                 )
@@ -140,11 +154,12 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -155,30 +170,30 @@ fun DashboardScreen(
                     Icon(
                         Icons.Filled.Security,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = DashGreen,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "MangoDefend",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = DashGreen
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { /* Settings */ }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.Gray)
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = DashGrey)
                     }
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color.DarkGray)
+                            .background(DashCardBg)
                             .clickable { onNavigateToProfile() },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (authState.isLoggedIn) {
+                        if (authState.isLoggedIn && authState.user?.photoUrl != null) {
                             AsyncImage(
                                 model = authState.user?.photoUrl,
                                 contentDescription = "Profile",
@@ -189,8 +204,8 @@ fun DashboardScreen(
                             Icon(
                                 Icons.Filled.AccountCircle,
                                 contentDescription = "Profile",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(32.dp)
+                                tint = DashGrey,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
                     }
@@ -201,8 +216,8 @@ fun DashboardScreen(
 
             // Welcome
             Text(
-                text = if (authState.isLoggedIn) "Welcome back, ${authState.user?.displayName?.split(" ")?.firstOrNull() ?: "User"}!" else "Welcome to MangoDefend",
-                style = MaterialTheme.typography.headlineMedium,
+                text = if (authState.isLoggedIn) "Welcome back," else "Welcome to MangoDefend",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
@@ -215,74 +230,60 @@ fun DashboardScreen(
                 Text(
                     text = "Secure",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DashGreen,
                     fontWeight = FontWeight.Bold
                 )
-                
-                if (authState.isLoggedIn) {
-                    Spacer(modifier = Modifier.width(12.dp))
-                    val planName = dashboardState.activeSubscription?.plan?.planName ?: "Free"
-                    Surface(
-                        color = if (dashboardState.activeSubscription != null) MaterialTheme.colorScheme.primary else Color.Gray,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = planName.uppercase(),
-                            color = Color.Black,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Stats Grid (2x2)
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    StatCard(
+                        label = "Total Scanned",
+                        value = if (dashboardState.totalScanned >= 1000000) String.format(Locale.getDefault(), "%.1fM+", dashboardState.totalScanned / 1000000.0) else dashboardState.totalScanned.toString(),
+                        icon = Icons.Filled.Autorenew,
+                        accentColor = DashGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        label = "Malware Detected",
+                        value = dashboardState.malwareDetected.toString(),
+                        icon = Icons.Filled.BugReport,
+                        accentColor = DashRed,
+                        showLine = false,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    StatCard(
+                        label = "Suspicious Files",
+                        value = dashboardState.suspiciousFiles.toString(),
+                        icon = Icons.Filled.Warning,
+                        accentColor = DashYellow,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        label = "Safe Files",
+                        value = if (dashboardState.totalScanned > 0) String.format(Locale.getDefault(), "%.1f%%", (dashboardState.safeFiles.toFloat() / dashboardState.totalScanned * 100)) else "0%",
+                        icon = Icons.Filled.Shield,
+                        accentColor = DashBlue,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats Grid
-            Row(modifier = Modifier.fillMaxWidth()) {
-                StatCard(
-                    label = "Total Scanned",
-                    value = if (dashboardState.totalScanned >= 1000000) String.format("%.1fM+", dashboardState.totalScanned / 1000000.0) else dashboardState.totalScanned.toString(),
-                    icon = Icons.Filled.Autorenew,
-                    accentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    label = "Malware Detected",
-                    value = dashboardState.malwareDetected.toString(),
-                    icon = Icons.Filled.BugReport,
-                    accentColor = Color(0xFFFF4444),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Row(modifier = Modifier.fillMaxWidth()) {
-                StatCard(
-                    label = "Suspicious Files",
-                    value = dashboardState.suspiciousFiles.toString(),
-                    icon = Icons.Filled.Warning,
-                    accentColor = Color(0xFFFFBB33),
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    label = "Safe Files",
-                    value = if (dashboardState.totalScanned > 0) String.format("%.1f%%", (dashboardState.safeFiles.toFloat() / dashboardState.totalScanned * 100)) else "0%",
-                    icon = Icons.Filled.Shield,
-                    accentColor = Color(0xFF33B5E5),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Action Buttons
+            // Action Buttons (2 items)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ActionCard(
                     label = "Scan File",
-                    icon = Icons.Filled.InsertDriveFile,
+                    icon = Icons.AutoMirrored.Filled.InsertDriveFile,
                     onClick = { requireLogin(onNavigateToScan) },
                     modifier = Modifier.weight(1f)
                 )
@@ -292,25 +293,9 @@ fun DashboardScreen(
                     onClick = { requireLogin(onNavigateToScanFolder) },
                     modifier = Modifier.weight(1f)
                 )
-                ActionCard(
-                    label = "Full System",
-                    icon = Icons.Filled.Security,
-                    onClick = { 
-                        requireLogin { 
-                            if (com.riset.mangodefendd.util.PermissionUtils.hasStoragePermission(context)) {
-                                dashboardViewModel.startTotalScan(onLimitReached = {
-                                    Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
-                                })
-                            } else {
-                                navController.navigate(Routes.Permission)
-                            }
-                        } 
-                    },
-                    modifier = Modifier.weight(1f)
-                )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             // Circular Scan Button
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -323,20 +308,26 @@ fun DashboardScreen(
                             dashboardViewModel.stopTotalScan()
                         } else {
                             requireLogin { 
-                                dashboardViewModel.startTotalScan(onLimitReached = {
-                                    Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
-                                }) 
+                                if (PermissionUtils.hasStoragePermission(context)) {
+                                    dashboardViewModel.startTotalScan(onLimitReached = {
+                                        Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
+                                    })
+                                } else {
+                                    navController.navigate(Routes.Permission)
+                                }
                             }
                         }
                     }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Last Scan Relative Time
             var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
             LaunchedEffect(key1 = dashboardState.lastScanTimestamp) {
                 while (true) {
-                    delay(60000) // Update every minute
+                    delay(60000)
                     currentTime = System.currentTimeMillis()
                 }
             }
@@ -357,38 +348,40 @@ fun DashboardScreen(
             }
             Text(
                 text = lastScanText,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                style = MaterialTheme.typography.bodyMedium,
+                color = DashGrey,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             // Realtime Protection Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp)
+                colors = CardDefaults.cardColors(containerColor = DashCardBg),
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(16.dp)
+                        .padding(20.dp)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(MaterialTheme.colorScheme.background, CircleShape),
+                            .clip(CircleShape)
+                            .background(DashDarkBg),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.WifiTethering, contentDescription = null, tint = Color(0xFF33B5E5))
+                        Icon(Icons.Filled.WifiTethering, contentDescription = null, tint = DashBlue)
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Real-time Protection", style = MaterialTheme.typography.titleMedium, color = Color.White)
-                        Text("Active & Monitoring", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text("Real-time Protection", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Active & Monitoring", style = MaterialTheme.typography.bodySmall, color = DashGrey)
                     }
                     Switch(
                         checked = dashboardState.isRealtimeActive,
@@ -397,11 +390,16 @@ fun DashboardScreen(
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                            checkedTrackColor = DashGreen,
+                            uncheckedThumbColor = DashGrey,
+                            uncheckedTrackColor = DashCardBg,
+                            uncheckedBorderColor = DashGrey
                         )
                     )
                 }
             }
+            
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
@@ -413,7 +411,7 @@ fun DashboardScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showLoginPrompt = false
-                    onNavigateToProfile() // Redirect to profile to login
+                    onNavigateToProfile()
                 }) {
                     Text("Login Now")
                 }
@@ -433,56 +431,58 @@ fun StatCard(
     value: String,
     icon: ImageVector,
     accentColor: Color,
+    showLine: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .padding(4.dp)
-            .height(120.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
+        modifier = modifier.height(130.dp),
+        colors = CardDefaults.cardColors(containerColor = DashCardBg),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .drawBehind {
-                    val strokeWidth = 4.dp.toPx()
-                    val y = size.height - strokeWidth / 2
-                    drawLine(
-                        color = accentColor,
-                        start = Offset(0f, y),
-                        end = Offset(size.width * 0.6f, y),
-                        strokeWidth = strokeWidth
-                    )
+                    if (showLine) {
+                        val strokeWidth = 4.dp.toPx()
+                        val y = size.height - strokeWidth / 2
+                        drawLine(
+                            color = accentColor,
+                            start = Offset(0f, y),
+                            end = Offset(size.width * 0.6f, y),
+                            strokeWidth = strokeWidth
+                        )
+                    }
                 }
-                .padding(12.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
+                    color = DashGrey,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.5.sp
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(14.dp)
+                    tint = accentColor.copy(alpha = 0.8f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -496,11 +496,10 @@ fun ActionCard(
 ) {
     Card(
         modifier = modifier
-            .padding(4.dp)
-            .height(90.dp)
+            .height(110.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = DashCardBg),
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -510,15 +509,15 @@ fun ActionCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                tint = DashGreen,
+                modifier = Modifier.size(28.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = Color.White,
-                textAlign = TextAlign.Center
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -531,7 +530,6 @@ fun CircularScanButton(
     max: Int,
     onClick: () -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -539,61 +537,76 @@ fun CircularScanButton(
             .drawBehind {
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(primaryColor.copy(alpha = 0.3f), Color.Transparent)
+                        colors = listOf(DashGreen.copy(alpha = 0.3f), Color.Transparent)
                     ),
                     radius = size.width / 2
                 )
-                
-                if (isScanning && max > 0) {
-                    drawArc(
-                        color = Color.White,
-                        startAngle = -90f,
-                        sweepAngle = (progress.toFloat() / max * 360f),
-                        useCenter = false,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx()),
-                        size = size.copy(width = 200.dp.toPx(), height = 200.dp.toPx()),
-                        topLeft = Offset((size.width - 200.dp.toPx())/2, (size.height - 200.dp.toPx())/2)
-                    )
-                }
             }
     ) {
-        Surface(
+        // Outer Glow Effect
+        Box(
             modifier = Modifier
-                .size(160.dp)
-                .clickable { onClick() },
-            shape = CircleShape,
-            color = if (isScanning) Color.DarkGray else primaryColor,
-            shadowElevation = 12.dp
+                .size(180.dp)
+                .clip(CircleShape)
+                .border(2.dp, DashGreen.copy(alpha = 0.5f), CircleShape)
+                .padding(8.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onClick() },
+                shape = CircleShape,
+                color = if (isScanning) Color.DarkGray else DashGreen,
+                shadowElevation = 8.dp
             ) {
-                if (isScanning) {
-                    CircularProgressIndicator(color = primaryColor)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "STOP SCAN",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = if (max > 0) "$progress / $max" else "Preparing...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White
-                    )
-                } else {
-                    Icon(Icons.Filled.Security, contentDescription = null, tint = Color.Black, modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "START FULL SCAN",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    if (isScanning) {
+                        CircularProgressIndicator(
+                            color = DashGreen,
+                            modifier = Modifier.size(40.dp),
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = if (max > 0) "$progress / $max" else "Scanning...",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(
+                            Icons.Filled.HealthAndSafety, 
+                            contentDescription = null, 
+                            tint = Color.Black, 
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "START FULL SCAN",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 16.sp
+                        )
+                    }
                 }
+            }
+        }
+        
+        if (isScanning && max > 0) {
+            Canvas(modifier = Modifier.size(200.dp)) {
+                drawArc(
+                    color = Color.White,
+                    startAngle = -90f,
+                    sweepAngle = (progress.toFloat() / max * 360f),
+                    useCenter = false,
+                    style = Stroke(width = 4.dp.toPx())
+                )
             }
         }
     }
