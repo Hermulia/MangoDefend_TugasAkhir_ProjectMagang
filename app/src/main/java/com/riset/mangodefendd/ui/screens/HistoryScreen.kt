@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,11 +43,21 @@ fun HistoryScreen(
 ) {
     val scanState by scanViewModel.scanState.collectAsState()
     val totalItems by scanViewModel.totalItems.collectAsState()
+    val currentFilter by scanViewModel.statusFilter.collectAsState()
+    
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var isEditMode by remember { mutableStateOf(false) }
     var selectedResultForDetail by remember { mutableStateOf<ScanResultEntity?>(null) }
     var showClearConfirmation by remember { mutableStateOf(false) }
     var showDeleteSelectedConfirmation by remember { mutableStateOf(false) }
+
+    val filterOptions = listOf(
+        "ALL" to "All",
+        "SAFE" to "Safe",
+        "DANGEROUS" to "Malware",
+        "SUSPICIOUS" to "Suspicious",
+        "TERHAPUS" to "Deleted"
+    )
 
     Scaffold(
         containerColor = DarkBg,
@@ -77,7 +88,7 @@ fun HistoryScreen(
                     }
                 },
                 actions = {
-                    if (scanState.isNotEmpty()) {
+                    if (scanState.isNotEmpty() || currentFilter != "ALL") {
                         if (isEditMode) {
                             IconButton(onClick = {
                                 if (selectedIds.size == scanState.size) {
@@ -114,7 +125,34 @@ fun HistoryScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            if (scanState.isEmpty()) {
+            // Filter Row
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(filterOptions) { (key, label) ->
+                    FilterChip(
+                        selected = currentFilter == key,
+                        onClick = { scanViewModel.setFilter(key) },
+                        label = { Text(label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.Transparent,
+                            labelColor = BrandGrey,
+                            selectedContainerColor = BrandGreen.copy(alpha = 0.2f),
+                            selectedLabelColor = BrandGreen
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = BrandGrey.copy(alpha = 0.5f),
+                            selectedBorderColor = BrandGreen,
+                            enabled = true,
+                            selected = currentFilter == key
+                        )
+                    )
+                }
+            }
+
+            if (scanState.isEmpty() && currentFilter == "ALL") {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -122,14 +160,24 @@ fun HistoryScreen(
                 ) {
                     Text("No scans yet", color = BrandGrey, style = MaterialTheme.typography.bodyMedium)
                 }
+            } else if (scanState.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center)
+                ) {
+                    Text("No results for this filter", color = BrandGrey, style = MaterialTheme.typography.bodyMedium)
+                }
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
-                        SummaryCard(totalItems, scanState)
+                    if (currentFilter == "ALL") {
+                        item {
+                            SummaryCard(totalItems, scanState)
+                        }
                     }
 
                     items(scanState) { result ->
@@ -178,7 +226,7 @@ fun HistoryScreen(
                         }
                     }
 
-                    if (scanState.size < totalItems) {
+                    if (scanState.size >= 10 && scanState.size % 10 == 0) {
                         item {
                             Button(
                                 onClick = { scanViewModel.loadMore() },

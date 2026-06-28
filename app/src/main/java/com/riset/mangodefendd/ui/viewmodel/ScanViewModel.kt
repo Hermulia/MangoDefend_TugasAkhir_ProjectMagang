@@ -9,6 +9,7 @@ import com.riset.mangodefendd.data.scan.ScanResultEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -23,6 +24,9 @@ class ScanViewModel @Inject constructor(
 
     private val _displayLimit = MutableStateFlow(10)
     val displayLimit: StateFlow<Int> = _displayLimit
+
+    private val _statusFilter = MutableStateFlow("ALL")
+    val statusFilter: StateFlow<String> = _statusFilter
 
     private val _totalItems = MutableStateFlow(0)
     val totalItems: StateFlow<Int> = _totalItems
@@ -44,14 +48,21 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _displayLimit.flatMapLatest { limit ->
-                repo.getPagedHistoryFlow(limit)
+            combine(_displayLimit, _statusFilter) { limit, filter ->
+                limit to filter
+            }.flatMapLatest { (limit, filter) ->
+                repo.getFilteredHistoryFlow(limit, filter)
             }.collect { localHistory ->
                 _scanState.value = localHistory
             }
         }
 
         loadHistory()
+    }
+
+    fun setFilter(status: String) {
+        _statusFilter.value = status
+        _displayLimit.value = 10 // Reset limit when changing filter
     }
 
     fun loadMore() {

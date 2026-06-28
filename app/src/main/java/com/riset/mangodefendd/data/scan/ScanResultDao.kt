@@ -20,6 +20,9 @@ interface ScanResultDao {
     @Query("SELECT * FROM scan_results ORDER BY scanDate DESC LIMIT :limit")
     fun getPaged(limit: Int): Flow<List<ScanResultEntity>>
 
+    @Query("SELECT * FROM scan_results WHERE :status = 'ALL' OR UPPER(status) = UPPER(:status) ORDER BY scanDate DESC LIMIT :limit")
+    fun getPagedFiltered(limit: Int, status: String): Flow<List<ScanResultEntity>>
+
     @Query("DELETE FROM scan_results")
     suspend fun clearAll()
 
