@@ -76,7 +76,10 @@ fun AppNavHost(
             }
 
             composable(Routes.History) {
-                HistoryScreen(onBackClick = { navController.popBackStack() })
+                HistoryScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onNavigateToProfile = { navController.navigate(Routes.Profile) }
+                )
             }
 
             composable(Routes.Subscriptions) {

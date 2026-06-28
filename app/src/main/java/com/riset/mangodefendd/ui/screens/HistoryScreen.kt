@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.riset.mangodefendd.data.scan.ScanResultEntity
 import com.riset.mangodefendd.ui.components.HistoryDetailDialog
+import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.ScanViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -39,9 +40,12 @@ val BrandRed = Color(0xFFC62828)
 @Composable
 fun HistoryScreen(
     scanViewModel: ScanViewModel = hiltViewModel(),
-    onBackClick: () -> Unit = {}
+    authViewModel: AuthViewModel = hiltViewModel(),
+    onBackClick: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     val scanState by scanViewModel.scanState.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     val totalItems by scanViewModel.totalItems.collectAsState()
     val currentFilter by scanViewModel.statusFilter.collectAsState()
     
@@ -50,6 +54,7 @@ fun HistoryScreen(
     var selectedResultForDetail by remember { mutableStateOf<ScanResultEntity?>(null) }
     var showClearConfirmation by remember { mutableStateOf(false) }
     var showDeleteSelectedConfirmation by remember { mutableStateOf(false) }
+    var showLoginPrompt by remember { mutableStateOf(false) }
 
     val filterOptions = listOf(
         "ALL" to "All",
@@ -101,16 +106,32 @@ fun HistoryScreen(
                             }
                             IconButton(onClick = {
                                 if (selectedIds.isNotEmpty()) {
-                                    showDeleteSelectedConfirmation = true
+                                    if (authState.isLoggedIn) {
+                                        showDeleteSelectedConfirmation = true
+                                    } else {
+                                        showLoginPrompt = true
+                                    }
                                 }
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = BrandRed)
                             }
                         } else {
-                            IconButton(onClick = { isEditMode = true }) {
+                            IconButton(onClick = { 
+                                if (authState.isLoggedIn) {
+                                    isEditMode = true 
+                                } else {
+                                    showLoginPrompt = true
+                                }
+                            }) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = "Edit Mode")
                             }
-                            IconButton(onClick = { showClearConfirmation = true }) {
+                            IconButton(onClick = { 
+                                if (authState.isLoggedIn) {
+                                    showClearConfirmation = true 
+                                } else {
+                                    showLoginPrompt = true
+                                }
+                            }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = BrandRed)
                             }
                         }
@@ -219,7 +240,11 @@ fun HistoryScreen(
                                                 selectedIds + result.id
                                             }
                                         } else if (result.status.uppercase() != "SAFE") {
-                                            selectedResultForDetail = result
+                                            if (authState.isLoggedIn) {
+                                                selectedResultForDetail = result
+                                            } else {
+                                                showLoginPrompt = true
+                                            }
                                         }
                                     }
                             )
@@ -301,6 +326,27 @@ fun HistoryScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteSelectedConfirmation = false }) {
                     Text("CANCEL")
+                }
+            }
+        )
+    }
+
+    if (showLoginPrompt) {
+        AlertDialog(
+            onDismissRequest = { showLoginPrompt = false },
+            title = { Text("Feature Restricted") },
+            text = { Text("Please login with your Google account to access details and action for suspicious or malware files.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLoginPrompt = false
+                    onNavigateToProfile()
+                }) {
+                    Text("Login Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoginPrompt = false }) {
+                    Text("Cancel")
                 }
             }
         )

@@ -42,6 +42,8 @@ fun SubscriptionScreen(
     val uiState by viewModel.uiState.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     val context = LocalContext.current
+    
+    var showLoginPrompt by remember { mutableStateOf(false) }
 
     // Handle Toast for messages
     LaunchedEffect(uiState.errorMessage) {
@@ -209,7 +211,11 @@ fun SubscriptionScreen(
                         PlanCardV2(
                             plan = plan,
                             onUpgradeClick = {
-                                viewModel.checkoutPlan(planId = plan.id, method = "qris")
+                                if (authState.isLoggedIn) {
+                                    viewModel.checkoutPlan(planId = plan.id, method = "qris")
+                                } else {
+                                    showLoginPrompt = true
+                                }
                             }
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -218,6 +224,27 @@ fun SubscriptionScreen(
             }
             
             Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        if (showLoginPrompt) {
+            AlertDialog(
+                onDismissRequest = { showLoginPrompt = false },
+                title = { Text("Feature Restricted") },
+                text = { Text("Please login with your Google account to purchase or upgrade subscription plans.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLoginPrompt = false
+                        onNavigateToProfile()
+                    }) {
+                        Text("Login Now")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLoginPrompt = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
         
         // Full screen loading overlay

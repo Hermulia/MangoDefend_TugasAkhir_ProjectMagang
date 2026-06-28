@@ -11,7 +11,6 @@ import com.riset.mangodefendd.auth.TokenManager
 import com.riset.mangodefendd.data.network.ApiService
 import com.riset.mangodefendd.data.network.dto.FirebaseLoginDto
 import com.riset.mangodefendd.data.network.dto.FirebaseSessionDevice
-import com.riset.mangodefendd.ml.MalwareRepository
 import com.riset.mangodefendd.service.RealtimeMonitorService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,7 +32,6 @@ class AuthViewModel @Inject constructor(
     private val authManager: AuthenticationManager,
     private val apiService: ApiService,
     private val tokenManager: TokenManager,
-    private val repo: MalwareRepository,
     private val workManager: WorkManager
 ) : ViewModel() {
     private val _authState = MutableStateFlow(
@@ -91,7 +89,6 @@ class AuthViewModel @Inject constructor(
             authManager.signOut()
             tokenManager.clearToken()
             tokenManager.clearUserId()
-            repo.clearLocalHistory()
             _authState.value = AuthUiState(isLoggedIn = false, user = null)
         }
     }
