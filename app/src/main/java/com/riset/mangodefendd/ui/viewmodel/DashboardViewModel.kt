@@ -11,7 +11,9 @@ import androidx.work.WorkManager
 import com.riset.mangodefendd.auth.TokenManager
 import com.riset.mangodefendd.data.network.ApiService
 import com.riset.mangodefendd.data.network.dto.SubscriptionDto
+import com.riset.mangodefendd.data.scan.ScanResultEntity
 import com.riset.mangodefendd.ml.MalwareRepository
+import com.riset.mangodefendd.ml.ThreatEvent
 import com.riset.mangodefendd.service.RealtimeMonitorService
 import com.riset.mangodefendd.service.ScanWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +35,8 @@ data class DashboardState(
     val scanProgress: Int = 0,
     val scanProgressMax: Int = 0,
     val lastScanTimestamp: Long? = null,
-    val activeSubscription: SubscriptionDto? = null
+    val activeSubscription: SubscriptionDto? = null,
+    val pendingThreat: ThreatEvent? = null
 )
 
 @HiltViewModel
@@ -50,6 +53,14 @@ class DashboardViewModel @Inject constructor(
     init {
         loadSubscription()
         checkServiceStatus()
+
+        // Listen for threats during scan
+        viewModelScope.launch {
+            repo.pendingThreat.collect { event ->
+                _dashboardState.update { it.copy(pendingThreat = event) }
+            }
+        }
+
         // Monitor Stats from Database
         viewModelScope.launch {
             combine(
@@ -172,6 +183,11 @@ class DashboardViewModel @Inject constructor(
             suspiciousFiles = suspicious,
             safeFiles = safe
         )
+    }
+
+    fun resolvePendingThreat(action: com.riset.mangodefendd.ml.ScanAction) {
+        _dashboardState.value.pendingThreat?.onResponse?.invoke(action)
+        _dashboardState.update { it.copy(pendingThreat = null) }
     }
 }
 

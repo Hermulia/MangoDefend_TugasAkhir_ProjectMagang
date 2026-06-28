@@ -29,6 +29,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.riset.mangodefendd.data.scan.ScanResultEntity
+import com.riset.mangodefendd.ui.components.ThreatConfirmationDialog
 import com.riset.mangodefendd.ui.theme.CardBackground
 import com.riset.mangodefendd.ui.theme.DarkBackground
 import com.riset.mangodefendd.ui.theme.MalwareRed
@@ -50,6 +51,7 @@ fun ScanScreen(
     val context = LocalContext.current
     val authState by authViewModel.authState.collectAsState()
     val dashboardState by dashboardViewModel.dashboardState.collectAsState()
+    val pendingThreat by viewModel.pendingThreat.collectAsState()
     var lastResult by remember { mutableStateOf<ScanResultEntity?>(null) }
     var isScanningInternal by remember { mutableStateOf(false) }
 
@@ -382,5 +384,15 @@ fun ScanScreen(
                 }
             }
         }
+    }
+
+    // Threat Confirmation Dialog
+    pendingThreat?.let { event ->
+        ThreatConfirmationDialog(
+            event = event,
+            onResolve = { action ->
+                viewModel.resolvePendingThreat(action)
+            }
+        )
     }
 }

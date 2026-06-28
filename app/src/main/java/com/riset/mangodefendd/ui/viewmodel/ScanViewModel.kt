@@ -3,6 +3,8 @@ package com.riset.mangodefendd.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.riset.mangodefendd.ml.MalwareRepository
+import com.riset.mangodefendd.ml.ThreatEvent
+import com.riset.mangodefendd.ml.ScanAction
 import com.riset.mangodefendd.data.scan.ScanResultEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,17 @@ class ScanViewModel @Inject constructor(
     private val _totalItems = MutableStateFlow(0)
     val totalItems: StateFlow<Int> = _totalItems
 
+    private val _pendingThreat = MutableStateFlow<ThreatEvent?>(null)
+    val pendingThreat: StateFlow<ThreatEvent?> = _pendingThreat
+
     init {
+        // Listen for threats during scan
+        viewModelScope.launch {
+            repo.pendingThreat.collect { event ->
+                _pendingThreat.value = event
+            }
+        }
+
         // Collect total count
         viewModelScope.launch {
             repo.getTotalScannedCount().collect { count ->
@@ -89,6 +101,11 @@ class ScanViewModel @Inject constructor(
             val results = repo.scanFiles(files) { s,t -> progress(s,t) }
             onComplete(results)
         }
+    }
+
+    fun resolvePendingThreat(action: ScanAction) {
+        _pendingThreat.value?.onResponse?.invoke(action)
+        _pendingThreat.value = null
     }
 }
 

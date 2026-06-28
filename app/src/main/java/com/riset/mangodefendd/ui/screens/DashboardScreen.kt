@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import com.riset.mangodefendd.navigation.Routes
+import com.riset.mangodefendd.ui.components.ThreatConfirmationDialog
 import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.DashboardViewModel
 import com.riset.mangodefendd.util.PermissionUtils
@@ -452,6 +453,16 @@ fun DashboardScreen(
                 TextButton(onClick = { showLoginPrompt = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    // Threat Confirmation Dialog
+    dashboardState.pendingThreat?.let { event ->
+        ThreatConfirmationDialog(
+            event = event,
+            onResolve = { action ->
+                dashboardViewModel.resolvePendingThreat(action)
             }
         )
     }
