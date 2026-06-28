@@ -73,6 +73,24 @@ fun DashboardScreen(
 
     var showLoginPrompt by remember { mutableStateOf(false) }
 
+    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(context, "Notifications are required for scan alerts", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val checkNotificationPermission: () -> Boolean = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val isGranted = context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!isGranted) {
+                notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            isGranted
+        } else {
+            true
+        }
+    }
+
     val googleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
@@ -309,9 +327,11 @@ fun DashboardScreen(
                         } else {
                             requireLogin { 
                                 if (PermissionUtils.hasStoragePermission(context)) {
-                                    dashboardViewModel.startTotalScan(onLimitReached = {
-                                        Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
-                                    })
+                                    if (checkNotificationPermission()) {
+                                        dashboardViewModel.startTotalScan(onLimitReached = {
+                                            Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
+                                        })
+                                    }
                                 } else {
                                     navController.navigate(Routes.Permission)
                                 }
@@ -389,7 +409,9 @@ fun DashboardScreen(
                             requireLogin { 
                                 if (enabled) {
                                     if (PermissionUtils.hasStoragePermission(context)) {
-                                        dashboardViewModel.toggleRealtimeProtection(true)
+                                        if (checkNotificationPermission()) {
+                                            dashboardViewModel.toggleRealtimeProtection(true)
+                                        }
                                     } else {
                                         navController.navigate(Routes.Permission)
                                     }
