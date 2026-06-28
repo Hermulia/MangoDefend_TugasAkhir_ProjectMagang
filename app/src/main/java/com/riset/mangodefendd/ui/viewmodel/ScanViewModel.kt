@@ -65,10 +65,8 @@ class ScanViewModel @Inject constructor(
     fun loadHistory() {
         viewModelScope.launch {
             try {
-                // This will trigger a sync or fetch remote data
                 repo.getHistory()
             } catch (e: Exception) {
-                // Ignore for now
             }
         }
     }
@@ -85,10 +83,10 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    fun scanSingleFile(file: File, onDone: (ScanResultEntity?) -> Unit) {
+    fun scanSingleFile(file: File, onDeleteSource: (suspend () -> Unit)? = null, onDone: (ScanResultEntity?) -> Unit) {
         viewModelScope.launch {
             try {
-                val res = repo.scanFile(file)
+                val res = repo.scanFile(file, onDeleteSource = onDeleteSource)
                 onDone(res)
             } catch (e: Exception) {
                 onDone(null)
@@ -96,9 +94,14 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    fun scanBatch(files: List<File>, progress: (Int,Int) -> Unit, onComplete: (List<ScanResultEntity>) -> Unit) {
+    fun scanBatch(
+        files: List<File>, 
+        onDeleteSources: Map<String, suspend () -> Unit> = emptyMap(),
+        progress: (Int,Int) -> Unit, 
+        onComplete: (List<ScanResultEntity>) -> Unit
+    ) {
         viewModelScope.launch {
-            val results = repo.scanFiles(files) { s,t -> progress(s,t) }
+            val results = repo.scanFiles(files, onDeleteSources) { s,t -> progress(s,t) }
             onComplete(results)
         }
     }
@@ -108,8 +111,3 @@ class ScanViewModel @Inject constructor(
         _pendingThreat.value = null
     }
 }
-
-
-
-
-

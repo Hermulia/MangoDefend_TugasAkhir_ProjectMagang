@@ -55,10 +55,8 @@ fun ScanScreen(
     var lastResult by remember { mutableStateOf<ScanResultEntity?>(null) }
     var isScanningInternal by remember { mutableStateOf(false) }
 
-    // Engine version
     val engineVersion = dashboardState.activeSubscription?.plan?.model?.version ?: "v4.8.2-Core"
 
-    // Last scan relative time logic
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -90,10 +88,17 @@ fun ScanScreen(
             val tmp = File(context.cacheDir, fileName)
             try {
                 FileUtils.copyUriToFile(context, uri, tmp)
-                viewModel.scanSingleFile(tmp) { res ->
+                viewModel.scanSingleFile(
+                    file = tmp,
+                    onDeleteSource = {
+                        try {
+                            documentFile?.delete()
+                        } catch (e: Exception) {}
+                    }
+                ) { res ->
                     lastResult = res
                     isScanningInternal = false
-                    tmp.delete()
+                    if (tmp.exists()) tmp.delete()
                 }
             } catch (e: Exception) {
                 isScanningInternal = false
@@ -117,44 +122,17 @@ fun ScanScreen(
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = NeonGreen)
                 }
-                Icon(
-                    Icons.Filled.Security,
-                    contentDescription = null,
-                    tint = NeonGreen,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(Icons.Filled.Security, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "MangoDefend",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = NeonGreen
-                )
+                Text("MangoDefend", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { /* Settings */ }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.Gray)
-                }
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color.DarkGray)
-                ) {
+                IconButton(onClick = { /* Settings */ }) { Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.Gray) }
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.DarkGray)) {
                     if (authState.isLoggedIn) {
-                        AsyncImage(
-                            model = authState.user?.photoUrl,
-                            contentDescription = "Profile",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        AsyncImage(model = authState.user?.photoUrl, contentDescription = "Profile", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
-                        Icon(
-                            Icons.Filled.AccountCircle,
-                            contentDescription = "Profile",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile", tint = Color.Gray, modifier = Modifier.size(32.dp))
                     }
                 }
             }
@@ -163,54 +141,21 @@ fun ScanScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Status Card
-        Card(
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Card(modifier = Modifier.fillMaxWidth().height(100.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), shape = RoundedCornerShape(24.dp)) {
+            Row(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text(
-                        "CURRENT STATUS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
+                    Text("CURRENT STATUS", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .background(if (isScanningInternal) Color.Yellow else NeonGreen, CircleShape)
-                        )
+                        Box(modifier = Modifier.size(10.dp).background(if (isScanningInternal) Color.Yellow else NeonGreen, CircleShape))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (isScanningInternal) "Scanning..." else "Idle",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(if (isScanningInternal) "Scanning..." else "Idle", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        "Engine Version",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Engine Version", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        engineVersion,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(engineVersion, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -218,106 +163,37 @@ fun ScanScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Selection Area
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clip(RoundedCornerShape(32.dp))
-                .clickable { if (!isScanningInternal) launcher.launch("*/*") },
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(32.dp)).clickable { if (!isScanningInternal) launcher.launch("*/*") }, contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = Stroke(
-                    width = 2.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
-                )
-                drawRoundRect(
-                    color = Color.Gray.copy(alpha = 0.3f),
-                    style = stroke,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(32.dp.toPx())
-                )
+                val stroke = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f))
+                drawRoundRect(color = Color.Gray.copy(alpha = 0.3f), style = stroke, cornerRadius = androidx.compose.ui.geometry.CornerRadius(32.dp.toPx()))
             }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(32.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.size(120.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color.White.copy(alpha = 0.05f)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxSize()
-                    )
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.padding(32.dp)) {
+                Surface(modifier = Modifier.size(120.dp), shape = RoundedCornerShape(24.dp), color = Color.White.copy(alpha = 0.05f)) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.InsertDriveFile, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.padding(24.dp).fillMaxSize())
                 }
-
                 Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    "Select File",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
+                Text("Select File", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    "Tap to choose a file for\ndeep heuristic analysis.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp
-                )
+                Text("Tap to choose a file for\ndeep heuristic analysis.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 22.sp)
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Bottom Row
-        Row(
-            modifier = Modifier.fillMaxWidth().height(180.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Analysis Summary Card
-            Card(
-                modifier = Modifier.weight(1.3f).fillMaxHeight(),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                shape = RoundedCornerShape(24.dp)
-            ) {
+        Row(modifier = Modifier.fillMaxWidth().height(180.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Card(modifier = Modifier.weight(1.3f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = CardBackground), shape = RoundedCornerShape(24.dp)) {
                 val hasScanned = lastResult != null
                 val statusText = if (!hasScanned) "-" else if (lastResult?.status == "Safe") "Secure" else lastResult?.status ?: "N/A"
                 val benignPercent = lastResult?.benignScore?.let { (it * 100).toInt() } ?: 0
                 val malwarePercent = lastResult?.malwareScore?.let { (it * 100).toInt() } ?: 0
-
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "ANALYSIS SUMMARY",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("ANALYSIS SUMMARY", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        if (hasScanned) "1 File\nScanned" else "- File\nScanned",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 20.sp
-                    )
+                    Text(if (hasScanned) "1 File\nScanned" else "- File\nScanned", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold, lineHeight = 20.sp)
                     Spacer(modifier = Modifier.weight(1f))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                         Column {
                             Text("BENIGN", style = MaterialTheme.typography.labelSmall, color = NeonGreen, fontSize = 8.sp)
                             Text(if (hasScanned) "$benignPercent%" else "-", color = NeonGreen, fontWeight = FontWeight.Bold)
@@ -332,67 +208,27 @@ fun ScanScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(CircleShape)
-                            .background(Color.DarkGray.copy(alpha = 0.5f))
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(Color.DarkGray.copy(alpha = 0.5f))) {
                         val progress = if (hasScanned) (benignPercent / 100f) else 0f
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(progress)
-                                .background(if (statusText == "Secure") NeonGreen else MalwareRed, CircleShape)
-                        )
+                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(progress).background(if (statusText == "Secure") NeonGreen else MalwareRed, CircleShape))
                     }
                 }
             }
-
-            // Last Update Card
-            Card(
-                modifier = Modifier.weight(0.7f).fillMaxHeight(),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                shape = RoundedCornerShape(24.dp)
-            ) {
+            Card(modifier = Modifier.weight(0.7f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = CardBackground), shape = RoundedCornerShape(24.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "LAST UPDATE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
+                    Text("LAST UPDATE", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.weight(1f))
-                    
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.AccessTime,
-                            contentDescription = null,
-                            tint = NeonGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Filled.AccessTime, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            lastScanText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(lastScanText, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     }
 
-    // Threat Confirmation Dialog
     pendingThreat?.let { event ->
-        ThreatConfirmationDialog(
-            event = event,
-            onResolve = { action ->
-                viewModel.resolvePendingThreat(action)
-            }
-        )
+        ThreatConfirmationDialog(event = event, onResolve = { action -> viewModel.resolvePendingThreat(action) })
     }
 }
