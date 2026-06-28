@@ -80,7 +80,16 @@ fun AppNavHost(
             }
 
             composable(Routes.Subscriptions) {
-                com.riset.mangodefendd.ui.screens.SubscriptionScreen(onNavigateBack = { navController.popBackStack() })
+                com.riset.mangodefendd.ui.screens.SubscriptionScreen(
+                    onNavigateToHome = {
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Dashboard) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHistory = { navController.navigate(Routes.History) },
+                    onNavigateToPricing = { }, // Already here
+                    onNavigateToProfile = { navController.navigate(Routes.Profile) }
+                )
             }
 
             composable(Routes.Transactions) {

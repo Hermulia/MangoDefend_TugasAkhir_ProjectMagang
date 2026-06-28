@@ -127,6 +127,8 @@ class RealtimeMonitorService : Service() {
                     val result = repo.scanFile(file)
                     if (result.status != "Safe") {
                         showDetectionNotification(result.fileName, result.status)
+                    } else {
+                        showScanSuccessNotification(result.fileName)
                     }
                 }
             } catch (e: Exception) {
@@ -144,6 +146,20 @@ class RealtimeMonitorService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
+            .build()
+        nm.notify(fileName.hashCode(), notification)
+    }
+
+    private fun showScanSuccessNotification(fileName: String) {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(this, "realtime_channel")
+            .setContentTitle("File Scanned")
+            .setContentText("Safe: $fileName")
+            .setSmallIcon(android.R.drawable.ic_menu_save)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .setGroup("realtime_scans")
             .build()
         nm.notify(fileName.hashCode(), notification)
     }
