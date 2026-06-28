@@ -7,6 +7,7 @@ import com.riset.mangodefendd.data.scan.ScanResultEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -18,13 +19,35 @@ class ScanViewModel @Inject constructor(
     private val _scanState = MutableStateFlow<List<ScanResultEntity>>(emptyList())
     val scanState: StateFlow<List<ScanResultEntity>> = _scanState
 
+    private val _displayLimit = MutableStateFlow(10)
+    val displayLimit: StateFlow<Int> = _displayLimit
+
+    private val _totalItems = MutableStateFlow(0)
+    val totalItems: StateFlow<Int> = _totalItems
+
     init {
-        // Collect local database flow to always have up-to-date data
+        // Collect total count
         viewModelScope.launch {
-            repo.getLocalHistoryFlow().collect { localHistory ->
+            repo.getTotalScannedCount().collect { count ->
+                _totalItems.value = count
+            }
+        }
+
+        // Collect local database flow with dynamic limit
+        viewModelScope.launch {
+            _displayLimit.flatMapLatest { limit ->
+                repo.getPagedHistoryFlow(limit)
+            }.collect { localHistory ->
                 _scanState.value = localHistory
             }
         }
+
+        // Fetch remote history on start
+        loadHistory()
+    }
+
+    fun loadMore() {
+        _displayLimit.value += 10
     }
 
     fun loadHistory() {

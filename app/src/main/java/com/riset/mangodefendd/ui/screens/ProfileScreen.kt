@@ -76,8 +76,8 @@ fun ProfileScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToHome,
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
+                    icon = { Icon(Icons.Filled.Security, contentDescription = "Protect") },
+                    label = { Text("Protect") },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = Color.Gray,
                         unselectedTextColor = Color.Gray,

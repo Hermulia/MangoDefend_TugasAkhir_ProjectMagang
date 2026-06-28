@@ -11,8 +11,14 @@ interface ScanResultDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(result: ScanResultEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(results: List<ScanResultEntity>)
+
     @Query("SELECT * FROM scan_results ORDER BY scanDate DESC")
     fun getAll(): Flow<List<ScanResultEntity>>
+
+    @Query("SELECT * FROM scan_results ORDER BY scanDate DESC LIMIT :limit")
+    fun getPaged(limit: Int): Flow<List<ScanResultEntity>>
 
     @Query("DELETE FROM scan_results")
     suspend fun clearAll()

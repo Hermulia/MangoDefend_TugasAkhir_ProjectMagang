@@ -39,6 +39,7 @@ fun HistoryScreen(
     onBackClick: () -> Unit = {}
 ) {
     val scanState by scanViewModel.scanState.collectAsState()
+    val totalItems by scanViewModel.totalItems.collectAsState()
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var isEditMode by remember { mutableStateOf(false) }
 
@@ -123,7 +124,7 @@ fun HistoryScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     item {
-                        SummaryCard(scanState)
+                        SummaryCard(totalItems, scanState)
                     }
 
                     items(scanState) { result ->
@@ -170,16 +171,18 @@ fun HistoryScreen(
                         }
                     }
 
-                    item {
-                        Button(
-                            onClick = { /* Load more logic if any */ },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CardBg),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("LOAD MORE HISTORY", color = BrandGrey, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    if (scanState.size < totalItems) {
+                        item {
+                            Button(
+                                onClick = { scanViewModel.loadMore() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = CardBg),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("LOAD MORE HISTORY", color = BrandGrey, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
                         }
                     }
                 }
@@ -189,8 +192,7 @@ fun HistoryScreen(
 }
 
 @Composable
-fun SummaryCard(scanResults: List<com.riset.mangodefendd.data.scan.ScanResultEntity>) {
-    val totalScans = scanResults.size
+fun SummaryCard(totalScans: Int, scanResults: List<com.riset.mangodefendd.data.scan.ScanResultEntity>) {
     val lastScan = scanResults.maxByOrNull { it.scanDate }?.scanDate
     val lastScanStr = if (lastScan != null) {
         val today = Calendar.getInstance()
