@@ -90,6 +90,7 @@ fun ScanScreen(
                 FileUtils.copyUriToFile(context, uri, tmp)
                 viewModel.scanSingleFile(
                     file = tmp,
+                    originalPath = uri.toString(),
                     onDeleteSource = {
                         try {
                             documentFile?.delete()

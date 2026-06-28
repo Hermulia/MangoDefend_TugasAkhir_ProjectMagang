@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.riset.mangodefendd.data.scan.ScanResultEntity
+import com.riset.mangodefendd.ui.components.HistoryDetailDialog
 import com.riset.mangodefendd.ui.viewmodel.ScanViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -42,6 +44,7 @@ fun HistoryScreen(
     val totalItems by scanViewModel.totalItems.collectAsState()
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var isEditMode by remember { mutableStateOf(false) }
+    var selectedResultForDetail by remember { mutableStateOf<ScanResultEntity?>(null) }
 
     Scaffold(
         containerColor = DarkBg,
@@ -165,6 +168,8 @@ fun HistoryScreen(
                                             } else {
                                                 selectedIds + result.id
                                             }
+                                        } else if (result.status.uppercase() != "SAFE") {
+                                            selectedResultForDetail = result
                                         }
                                     }
                             )
@@ -188,6 +193,17 @@ fun HistoryScreen(
                 }
             }
         }
+    }
+
+    selectedResultForDetail?.let { result ->
+        HistoryDetailDialog(
+            result = result,
+            onDeleteFile = {
+                scanViewModel.deleteFileAndHistory(it)
+                selectedResultForDetail = null
+            },
+            onDismiss = { selectedResultForDetail = null }
+        )
     }
 }
 
@@ -314,26 +330,41 @@ fun ScanResultCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             val isSafe = status.uppercase() == "SAFE"
-            val statusColor = if (isSafe) BrandGreen else BrandRed
+            val isDeleted = status.uppercase() == "TERHAPUS" || status.uppercase() == "DELETED"
+            val statusColor = when {
+                isSafe -> BrandGreen
+                isDeleted -> Color.Gray
+                else -> BrandRed
+            }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isSafe) {
-                    Icon(
-                        Icons.Default.CheckCircle, 
-                        contentDescription = null, 
-                        tint = BrandGreen, 
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                } else {
-                    Icon(
-                        Icons.Default.Warning, 
-                        contentDescription = null, 
-                        tint = BrandRed, 
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                when {
+                    isSafe -> {
+                        Icon(
+                            Icons.Default.CheckCircle, 
+                            contentDescription = null, 
+                            tint = BrandGreen, 
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    isDeleted -> {
+                        Icon(
+                            Icons.Default.DeleteForever, 
+                            contentDescription = null, 
+                            tint = Color.Gray, 
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            Icons.Default.Warning, 
+                            contentDescription = null, 
+                            tint = BrandRed, 
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     "Status: $status",
                     style = MaterialTheme.typography.bodyMedium,

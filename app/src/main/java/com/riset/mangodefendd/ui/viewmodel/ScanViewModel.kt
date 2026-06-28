@@ -31,21 +31,18 @@ class ScanViewModel @Inject constructor(
     val pendingThreat: StateFlow<ThreatEvent?> = _pendingThreat
 
     init {
-        // Sync pending threats from repo
         viewModelScope.launch {
             repo.activeThreat.collect { event ->
                 _pendingThreat.value = event
             }
         }
 
-        // Collect total count
         viewModelScope.launch {
             repo.getTotalScannedCount().collect { count ->
                 _totalItems.value = count
             }
         }
 
-        // Collect local database flow with dynamic limit
         viewModelScope.launch {
             _displayLimit.flatMapLatest { limit ->
                 repo.getPagedHistoryFlow(limit)
@@ -54,7 +51,6 @@ class ScanViewModel @Inject constructor(
             }
         }
 
-        // Fetch remote history on start
         loadHistory()
     }
 
@@ -66,8 +62,7 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repo.getHistory()
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -83,10 +78,26 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    fun scanSingleFile(file: File, onDeleteSource: (suspend () -> Unit)? = null, onDone: (ScanResultEntity?) -> Unit) {
+    fun deleteFileAndHistory(result: ScanResultEntity) {
+        viewModelScope.launch {
+            repo.deletePhysicalFile(result.filePath)
+            val updated = result.copy(
+                status = "Terhapus",
+                actionTaken = "Deleted"
+            )
+            repo.updateHistoryItem(updated)
+        }
+    }
+
+    fun scanSingleFile(
+        file: File, 
+        onDeleteSource: (suspend () -> Unit)? = null, 
+        originalPath: String? = null,
+        onDone: (ScanResultEntity?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val res = repo.scanFile(file, onDeleteSource = onDeleteSource)
+                val res = repo.scanFile(file, onDeleteSource = onDeleteSource, originalPath = originalPath)
                 onDone(res)
             } catch (e: Exception) {
                 onDone(null)
@@ -97,17 +108,17 @@ class ScanViewModel @Inject constructor(
     fun scanBatch(
         files: List<File>, 
         onDeleteSources: Map<String, suspend () -> Unit> = emptyMap(),
+        originalPaths: Map<String, String> = emptyMap(),
         progress: (Int,Int) -> Unit, 
         onComplete: (List<ScanResultEntity>) -> Unit
     ) {
         viewModelScope.launch {
-            val results = repo.scanFiles(files, onDeleteSources) { s,t -> progress(s,t) }
+            val results = repo.scanFiles(files, onDeleteSources, originalPaths) { s,t -> progress(s,t) }
             onComplete(results)
         }
     }
 
     fun resolvePendingThreat(action: ScanAction) {
         _pendingThreat.value?.onResponse?.invoke(action)
-        // No need to clear local state manually, the repo will set activeThreat to null
     }
 }

@@ -90,15 +90,16 @@ fun ScanFolderScreen(
             scope.launch(Dispatchers.IO) {
                 val filesToScan = mutableListOf<File>()
                 val deleteCallbacks = mutableMapOf<String, suspend () -> Unit>()
+                val originalPaths = mutableMapOf<String, String>()
                 
                 val documentFile = DocumentFile.fromTreeUri(context, uri)
                 if (documentFile != null && documentFile.isDirectory) {
-                    collectFilesRecursiveWithDeletion(context, documentFile, filesToScan, deleteCallbacks)
+                    collectFilesRecursiveWithDeletionV2(context, documentFile, filesToScan, deleteCallbacks, originalPaths)
                 }
                 
                 withContext(Dispatchers.Main) {
                     if (filesToScan.isNotEmpty()) {
-                        viewModel.scanBatch(filesToScan, deleteCallbacks, { _, _ -> }) { results ->
+                        viewModel.scanBatch(filesToScan, deleteCallbacks, originalPaths, { _, _ -> }) { results ->
                             lastBatchResult = results
                             isScanningInternal = false
                             filesToScan.forEach { if (it.exists()) it.delete() }
@@ -244,15 +245,16 @@ fun ScanFolderScreen(
     }
 }
 
-private fun collectFilesRecursiveWithDeletion(
+private fun collectFilesRecursiveWithDeletionV2(
     context: Context, 
     directory: DocumentFile, 
     files: MutableList<File>,
-    deleteCallbacks: MutableMap<String, suspend () -> Unit>
+    deleteCallbacks: MutableMap<String, suspend () -> Unit>,
+    originalPaths: MutableMap<String, String>
 ) {
     directory.listFiles().forEach { file ->
         if (file.isDirectory) {
-            collectFilesRecursiveWithDeletion(context, file, files, deleteCallbacks)
+            collectFilesRecursiveWithDeletionV2(context, file, files, deleteCallbacks, originalPaths)
         } else if (file.isFile) {
             val tmp = File(context.cacheDir, "scan_${System.currentTimeMillis()}_${file.name}")
             try {
@@ -263,6 +265,7 @@ private fun collectFilesRecursiveWithDeletion(
                 }
                 if (tmp.exists()) {
                     files.add(tmp)
+                    originalPaths[tmp.absolutePath] = file.uri.toString()
                     deleteCallbacks[tmp.absolutePath] = {
                         try {
                             file.delete()
