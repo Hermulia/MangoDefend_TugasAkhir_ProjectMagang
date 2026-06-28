@@ -14,6 +14,7 @@ import com.riset.mangodefendd.data.network.dto.SubscriptionDto
 import com.riset.mangodefendd.data.scan.ScanResultEntity
 import com.riset.mangodefendd.ml.MalwareRepository
 import com.riset.mangodefendd.ml.ThreatEvent
+import com.riset.mangodefendd.ml.ScanAction
 import com.riset.mangodefendd.service.RealtimeMonitorService
 import com.riset.mangodefendd.service.ScanWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,9 +55,9 @@ class DashboardViewModel @Inject constructor(
         loadSubscription()
         checkServiceStatus()
 
-        // Listen for threats during scan
+        // Sync pending threats from repo
         viewModelScope.launch {
-            repo.pendingThreat.collect { event ->
+            repo.activeThreat.collect { event ->
                 _dashboardState.update { it.copy(pendingThreat = event) }
             }
         }
@@ -82,7 +83,7 @@ class DashboardViewModel @Inject constructor(
             }.collect {}
         }
 
-        // Monitor Scan Progress from WorkManager (Persistent across navigation)
+        // Monitor Scan Progress from WorkManager
         viewModelScope.launch {
             workManager.getWorkInfosForUniqueWorkLiveData("total_scan").asFlow().collect { workInfos ->
                 val workInfo = workInfos.firstOrNull()
@@ -116,7 +117,6 @@ class DashboardViewModel @Inject constructor(
                         _dashboardState.update { it.copy(activeSubscription = activeSub) }
                     }
                 } catch (e: Exception) {
-                    // Ignore errors for dashboard
                 }
             }
         }
@@ -124,11 +124,9 @@ class DashboardViewModel @Inject constructor(
 
     fun startTotalScan(onLimitReached: () -> Unit) {
         val activeSub = _dashboardState.value.activeSubscription
-        val limit = activeSub?.plan?.fullScanLimit ?: 1 // Default 1 for guest/free if not specified
+        val limit = activeSub?.plan?.fullScanLimit ?: 1
         
-        // 999 is Unlimited
         if (limit == 999) {
-            // Proceed to start scan
         } else if (limit == 0) {
             onLimitReached()
             return
@@ -185,9 +183,9 @@ class DashboardViewModel @Inject constructor(
         )
     }
 
-    fun resolvePendingThreat(action: com.riset.mangodefendd.ml.ScanAction) {
+    fun resolvePendingThreat(action: ScanAction) {
         _dashboardState.value.pendingThreat?.onResponse?.invoke(action)
-        _dashboardState.update { it.copy(pendingThreat = null) }
+        // No need to clear local state manually, the repo will set activeThreat to null 
+        // which will trigger the collect block above.
     }
 }
-

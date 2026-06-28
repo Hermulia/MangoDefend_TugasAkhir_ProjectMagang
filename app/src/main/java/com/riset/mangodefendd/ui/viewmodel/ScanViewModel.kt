@@ -31,9 +31,9 @@ class ScanViewModel @Inject constructor(
     val pendingThreat: StateFlow<ThreatEvent?> = _pendingThreat
 
     init {
-        // Listen for threats during scan
+        // Sync pending threats from repo
         viewModelScope.launch {
-            repo.pendingThreat.collect { event ->
+            repo.activeThreat.collect { event ->
                 _pendingThreat.value = event
             }
         }
@@ -108,6 +108,6 @@ class ScanViewModel @Inject constructor(
 
     fun resolvePendingThreat(action: ScanAction) {
         _pendingThreat.value?.onResponse?.invoke(action)
-        _pendingThreat.value = null
+        // No need to clear local state manually, the repo will set activeThreat to null
     }
 }
