@@ -24,12 +24,18 @@ class ScanWorker @AssistedInject constructor(
 
             val roots = mutableListOf<File>()
             
-            // 1. Gather files from public directories
+            // 1. Gather files from public directories or whole storage if permitted
             val external = Environment.getExternalStorageDirectory()
             if (external.exists()) {
-                listOf("Download", "Documents", "DCIM", "Pictures", "Movies", "Music").forEach {
-                    val folder = File(external, it)
-                    if (folder.exists()) roots.add(folder)
+                if (com.riset.mangodefendd.util.PermissionUtils.hasStoragePermission(applicationContext)) {
+                    // If we have full access, scan the whole external storage
+                    roots.add(external)
+                } else {
+                    // Fallback to specific public folders (though listing might still fail without MANAGE_EXTERNAL_STORAGE on 11+)
+                    listOf("Download", "Documents", "DCIM", "Pictures", "Movies", "Music").forEach {
+                        val folder = File(external, it)
+                        if (folder.exists()) roots.add(folder)
+                    }
                 }
             }
 

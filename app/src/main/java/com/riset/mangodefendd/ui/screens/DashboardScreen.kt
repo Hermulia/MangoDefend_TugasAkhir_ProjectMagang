@@ -34,6 +34,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import androidx.navigation.NavController
+import com.riset.mangodefendd.navigation.Routes
 import com.riset.mangodefendd.ui.viewmodel.AuthViewModel
 import com.riset.mangodefendd.ui.viewmodel.DashboardViewModel
 import com.riset.mangodefendd.util.FileUtils
@@ -42,6 +44,7 @@ import java.io.File
 
 @Composable
 fun DashboardScreen(
+    navController: NavController,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     onNavigateToScan: () -> Unit,
@@ -294,9 +297,13 @@ fun DashboardScreen(
                     icon = Icons.Filled.Security,
                     onClick = { 
                         requireLogin { 
-                            dashboardViewModel.startTotalScan(onLimitReached = {
-                                Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
-                            }) 
+                            if (com.riset.mangodefendd.util.PermissionUtils.hasStoragePermission(context)) {
+                                dashboardViewModel.startTotalScan(onLimitReached = {
+                                    Toast.makeText(context, "Scan limit reached for your plan. Please upgrade.", Toast.LENGTH_SHORT).show()
+                                })
+                            } else {
+                                navController.navigate(Routes.Permission)
+                            }
                         } 
                     },
                     modifier = Modifier.weight(1f)

@@ -1,22 +1,36 @@
 package com.riset.mangodefendd.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.riset.mangodefendd.ui.viewmodel.ScanViewModel
+import java.text.SimpleDateFormat
+import java.util.*
+
+// Colors based on the provided design image
+val DarkBg = Color(0xFF0B0E14)
+val CardBg = Color(0xFF151A23)
+val BrandGreen = Color(0xFF10C17D)
+val BrandGrey = Color(0xFF8A8D91)
+val BrandRed = Color(0xFFE53935)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,60 +42,71 @@ fun HistoryScreen(
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var isEditMode by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        TopAppBar(
-            title = { 
-                Text(if (isEditMode) "${selectedIds.size} Selected" else "Scan History") 
-            },
-            navigationIcon = {
-                IconButton(onClick = {
-                    if (isEditMode) {
-                        isEditMode = false
-                        selectedIds = emptySet()
-                    } else {
-                        onBackClick()
-                    }
-                }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-            },
-            actions = {
-                if (scanState.isNotEmpty()) {
-                    if (isEditMode) {
-                        IconButton(onClick = {
-                            if (selectedIds.size == scanState.size) {
-                                selectedIds = emptySet()
-                            } else {
-                                selectedIds = scanState.map { it.id }.toSet()
-                            }
-                        }) {
-                            Icon(Icons.Default.SelectAll, contentDescription = "Select All")
-                        }
-                        IconButton(onClick = {
-                            scanViewModel.deleteHistoryItems(selectedIds.toList())
+    Scaffold(
+        containerColor = DarkBg,
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBg,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
+                title = {
+                    Text(
+                        if (isEditMode) "${selectedIds.size} Selected" else "Scan History",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (isEditMode) {
                             isEditMode = false
                             selectedIds = emptySet()
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = Color.Red)
+                        } else {
+                            onBackClick()
                         }
-                    } else {
-                        IconButton(onClick = { isEditMode = true }) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = "Edit Mode")
-                        }
-                        IconButton(onClick = { scanViewModel.clearHistory() }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = Color.Red)
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (scanState.isNotEmpty()) {
+                        if (isEditMode) {
+                            IconButton(onClick = {
+                                if (selectedIds.size == scanState.size) {
+                                    selectedIds = emptySet()
+                                } else {
+                                    selectedIds = scanState.map { it.id }.toSet()
+                                }
+                            }) {
+                                Icon(Icons.Default.SelectAll, contentDescription = "Select All")
+                            }
+                            IconButton(onClick = {
+                                scanViewModel.deleteHistoryItems(selectedIds.toList())
+                                isEditMode = false
+                                selectedIds = emptySet()
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = BrandRed)
+                            }
+                        } else {
+                            IconButton(onClick = { isEditMode = true }) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = "Edit Mode")
+                            }
+                            IconButton(onClick = { scanViewModel.clearHistory() }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = BrandRed)
+                            }
                         }
                     }
                 }
-            }
-        )
-        
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
         ) {
             if (scanState.isEmpty()) {
                 Box(
@@ -89,10 +114,18 @@ fun HistoryScreen(
                         .fillMaxSize()
                         .wrapContentSize(Alignment.Center)
                 ) {
-                    Text("No scans yet", style = MaterialTheme.typography.bodyMedium)
+                    Text("No scans yet", color = BrandGrey, style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
-                LazyColumn {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item {
+                        SummaryCard(scanState)
+                    }
+
                     items(scanState) { result ->
                         val isSelected = selectedIds.contains(result.id)
                         Row(
@@ -108,7 +141,12 @@ fun HistoryScreen(
                                         } else {
                                             selectedIds - result.id
                                         }
-                                    }
+                                    },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = BrandGreen,
+                                        uncheckedColor = BrandGrey,
+                                        checkmarkColor = DarkBg
+                                    )
                                 )
                             }
                             ScanResultCard(
@@ -131,6 +169,102 @@ fun HistoryScreen(
                             )
                         }
                     }
+
+                    item {
+                        Button(
+                            onClick = { /* Load more logic if any */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CardBg),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("LOAD MORE HISTORY", color = BrandGrey, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryCard(scanResults: List<com.riset.mangodefendd.data.scan.ScanResultEntity>) {
+    val totalScans = scanResults.size
+    val lastScan = scanResults.maxByOrNull { it.scanDate }?.scanDate
+    val lastScanStr = if (lastScan != null) {
+        val today = Calendar.getInstance()
+        val scanCal = Calendar.getInstance().apply { timeInMillis = lastScan }
+        if (today.get(Calendar.DAY_OF_YEAR) == scanCal.get(Calendar.DAY_OF_YEAR)) {
+            "Today, " + SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(lastScan))
+        } else {
+            SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(lastScan))
+        }
+    } else {
+        "N/A"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardBg)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            // Vertical green line indicator on the left
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 20.dp)
+                    .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
+                    .background(BrandGreen)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text("ALL SYSTEMS", color = BrandGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                    Text("Status: Protected", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Row {
+                        Column {
+                            Text("Total Scans", color = BrandGrey, fontSize = 11.sp)
+                            Text(String.format(Locale.getDefault(), "%,d", totalScans), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(48.dp))
+                        Column {
+                            Text("Last Scan", color = BrandGrey, fontSize = 11.sp)
+                            Text(lastScanStr, color = BrandGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(BrandGreen.copy(alpha = 0.1f))
+                        .border(1.dp, BrandGreen.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Shield, 
+                        contentDescription = null, 
+                        tint = BrandGreen, 
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
             }
         }
@@ -147,44 +281,104 @@ fun ScanResultCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .padding(vertical = 8.dp)
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(fileName, style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(4.dp))
-
-            val statusColor = when (status.uppercase()) {
-                "SAFE" -> MaterialTheme.colorScheme.primary
-                "SUSPICIOUS" -> MaterialTheme.colorScheme.tertiary
-                "DANGEROUS" -> MaterialTheme.colorScheme.error
-                else -> MaterialTheme.colorScheme.onSurface
-            }
-            Text(
-                "Status: $status",
-                style = MaterialTheme.typography.bodySmall,
-                color = statusColor
-            )
-
-            Row(modifier = Modifier.padding(top = 4.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    "Benign: ${String.format("%.1f", benignScore * 100)}%",
-                    style = MaterialTheme.typography.labelSmall,
+                    fileName, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    color = Color.White, 
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
+                
+                val icon = when {
+                    fileName.endsWith(".apk", true) -> Icons.Default.Android
+                    fileName.endsWith(".jpg", true) || fileName.endsWith(".png", true) || fileName.endsWith(".jpeg", true) -> Icons.Default.Image
+                    fileName.endsWith(".pdf", true) || fileName.endsWith(".doc", true) || fileName.endsWith(".docx", true) -> Icons.Default.Description
+                    else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                }
+                Icon(icon, contentDescription = null, tint = BrandGrey, modifier = Modifier.size(20.dp))
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val isSafe = status.uppercase() == "SAFE"
+            val statusColor = if (isSafe) BrandGreen else BrandRed
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isSafe) {
+                    Icon(
+                        Icons.Default.CheckCircle, 
+                        contentDescription = null, 
+                        tint = BrandGreen, 
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                } else {
+                    Icon(
+                        Icons.Default.Warning, 
+                        contentDescription = null, 
+                        tint = BrandRed, 
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 Text(
-                    "Malware: ${String.format("%.1f", malwareScore * 100)}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.weight(1f)
+                    "Status: $status",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = statusColor,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            Text(
-                "Scanned: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(scanDate)}",
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("BENIGN", color = BrandGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                    Text(
+                        String.format(Locale.getDefault(), "%.1f%%", benignScore * 100),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("MALWARE", color = BrandGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                    Text(
+                        String.format(Locale.getDefault(), "%.1f%%", malwareScore * 100),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.AccessTime, 
+                    contentDescription = null, 
+                    tint = BrandGrey, 
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "Scanned: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(scanDate))}",
+                    color = BrandGrey,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
-

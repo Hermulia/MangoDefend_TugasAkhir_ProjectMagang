@@ -37,6 +37,7 @@ fun AppNavHost(
         NavHost(navController = navController, startDestination = startDestination) {
             composable(Routes.Dashboard) {
                 DashboardScreen(
+                    navController = navController,
                     onNavigateToScan = { navController.navigate(Routes.Scan) },
                     onNavigateToScanFolder = { navController.navigate(Routes.ScanFolder) },
                     onNavigateToHistory = { navController.navigate(Routes.History) },
@@ -56,6 +57,12 @@ fun AppNavHost(
                     navController.navigate(Routes.Dashboard) {
                         popUpTo(Routes.Login) { inclusive = true }
                     }
+                })
+            }
+
+            composable(Routes.Permission) {
+                PermissionRequestScreen(onPermissionGranted = {
+                    navController.popBackStack()
                 })
             }
 
