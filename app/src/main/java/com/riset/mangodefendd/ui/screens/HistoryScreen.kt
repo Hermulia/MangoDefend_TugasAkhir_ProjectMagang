@@ -45,6 +45,8 @@ fun HistoryScreen(
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var isEditMode by remember { mutableStateOf(false) }
     var selectedResultForDetail by remember { mutableStateOf<ScanResultEntity?>(null) }
+    var showClearConfirmation by remember { mutableStateOf(false) }
+    var showDeleteSelectedConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = DarkBg,
@@ -87,9 +89,9 @@ fun HistoryScreen(
                                 Icon(Icons.Default.SelectAll, contentDescription = "Select All")
                             }
                             IconButton(onClick = {
-                                scanViewModel.deleteHistoryItems(selectedIds.toList())
-                                isEditMode = false
-                                selectedIds = emptySet()
+                                if (selectedIds.isNotEmpty()) {
+                                    showDeleteSelectedConfirmation = true
+                                }
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = BrandRed)
                             }
@@ -97,7 +99,7 @@ fun HistoryScreen(
                             IconButton(onClick = { isEditMode = true }) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = "Edit Mode")
                             }
-                            IconButton(onClick = { scanViewModel.clearHistory() }) {
+                            IconButton(onClick = { showClearConfirmation = true }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = BrandRed)
                             }
                         }
@@ -203,6 +205,56 @@ fun HistoryScreen(
                 selectedResultForDetail = null
             },
             onDismiss = { selectedResultForDetail = null }
+        )
+    }
+
+    if (showClearConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmation = false },
+            title = { Text("Clear History", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to permanently clear all scan history? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scanViewModel.clearHistory()
+                        showClearConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
+                ) {
+                    Text("CLEAR ALL", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmation = false }) {
+                    Text("CANCEL")
+                }
+            }
+        )
+    }
+
+    if (showDeleteSelectedConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteSelectedConfirmation = false },
+            title = { Text("Delete Selected", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete ${selectedIds.size} selected items from history?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scanViewModel.deleteHistoryItems(selectedIds.toList())
+                        isEditMode = false
+                        selectedIds = emptySet()
+                        showDeleteSelectedConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
+                ) {
+                    Text("DELETE", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteSelectedConfirmation = false }) {
+                    Text("CANCEL")
+                }
+            }
         )
     }
 }
