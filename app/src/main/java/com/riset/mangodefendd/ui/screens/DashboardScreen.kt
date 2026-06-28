@@ -252,7 +252,6 @@ fun DashboardScreen(
                         value = dashboardState.malwareDetected.toString(),
                         icon = Icons.Filled.BugReport,
                         accentColor = DashRed,
-                        showLine = false,
                         modifier = Modifier.weight(1f)
                     )
                 }
