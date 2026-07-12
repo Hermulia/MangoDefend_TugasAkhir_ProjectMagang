@@ -19,7 +19,8 @@ data class SubscriptionUiState(
     val plans: List<PlanDto> = emptyList(),
     val activeSubscription: SubscriptionDto? = null,
     val errorMessage: String? = null,
-    val checkoutSuccessMessage: String? = null
+    val checkoutSuccessMessage: String? = null,
+    val paymentUrl: String? = null // New field for Midtrans Redirect URL
 )
 
 @HiltViewModel
@@ -32,7 +33,7 @@ class SubscriptionViewModel @Inject constructor(
     val uiState: StateFlow<SubscriptionUiState> = _uiState
 
     fun loadData() {
-        _uiState.update { it.copy(isLoading = true, errorMessage = null, checkoutSuccessMessage = null) }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, checkoutSuccessMessage = null, paymentUrl = null) }
         viewModelScope.launch {
             try {
                 // Fetch all plans
@@ -70,29 +71,33 @@ class SubscriptionViewModel @Inject constructor(
     }
 
     fun checkoutPlan(planId: Int, method: String) {
-        _uiState.update { it.copy(isLoading = true, errorMessage = null, checkoutSuccessMessage = null) }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, checkoutSuccessMessage = null, paymentUrl = null) }
         viewModelScope.launch {
             try {
-                // 1. Checkout to create pending transaction
+                // 1. Checkout to create pending transaction & get snap token/redirect url
                 val request = CreateTransactionRequest(planId = planId, method = method)
                 val response = apiService.checkout(request)
                 
                 if (response.isSuccessful && response.body() != null) {
-                    val transactionId = response.body()!!.data.id
+                    val transactionData = response.body()!!.data
+                    val redirectUrl = transactionData.redirectUrl
                     
-                    // 2. Simulate Payment Webhook Success
-                    val webhookResponse = apiService.simulatePaymentSuccess(transactionId)
-                    if (webhookResponse.isSuccessful) {
+                    if (!redirectUrl.isNullOrBlank()) {
+                        // TAMPILKAN WEBVIEW PEMBAYARAN
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                paymentUrl = redirectUrl
+                            )
+                        }
+                    } else {
+                        // ERROR: Backend tidak memberikan URL Midtrans
                         _uiState.update { 
                             it.copy(
                                 isLoading = false, 
-                                checkoutSuccessMessage = "Payment simulated successfully! Your subscription is now active."
-                            ) 
+                                errorMessage = "Backend did not return a payment URL. Check Midtrans configuration on server."
+                            )
                         }
-                        // Refresh data
-                        loadData()
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to simulate payment") }
                     }
                 } else {
                     _uiState.update { it.copy(isLoading = false, errorMessage = "Checkout failed: ${response.code()}") }
@@ -103,7 +108,13 @@ class SubscriptionViewModel @Inject constructor(
         }
     }
     
+    fun onPaymentFinished() {
+        // Called when user closes WebView
+        _uiState.update { it.copy(paymentUrl = null) }
+        loadData() // Refresh to check if webhook already updated status
+    }
+    
     fun clearMessages() {
-        _uiState.update { it.copy(errorMessage = null, checkoutSuccessMessage = null) }
+        _uiState.update { it.copy(errorMessage = null, checkoutSuccessMessage = null, paymentUrl = null) }
     }
 }

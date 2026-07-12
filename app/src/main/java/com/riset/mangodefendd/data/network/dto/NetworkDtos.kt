@@ -162,6 +162,8 @@ data class TransactionDto(
     val amount: String,
     val method: String?,
     val status: String,
+    @SerializedName("snap_token") val snapToken: String? = null,
+    @SerializedName("redirect_url") val redirectUrl: String? = null,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("update_at") val updatedAt: String?,
     val plan: PlanDto? = null

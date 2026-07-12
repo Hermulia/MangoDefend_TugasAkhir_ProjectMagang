@@ -61,7 +61,8 @@ fun HistoryScreen(
         "SAFE" to "Safe",
         "DANGEROUS" to "Malware",
         "SUSPICIOUS" to "Suspicious",
-        "TERHAPUS" to "Deleted"
+        "TERHAPUS" to "Deleted",
+        "DELETED" to "Deleted"
     )
 
     Scaffold(
@@ -476,7 +477,7 @@ fun ScanResultCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             val isSafe = status.uppercase() == "SAFE"
-            val isDeleted = status.uppercase() == "TERHAPUS" || status.uppercase() == "DELETED"
+            val isDeleted = status.uppercase() == "DELETED" || status.uppercase() == "TERHAPUS"
             val statusColor = when {
                 isSafe -> BrandGreen
                 isDeleted -> Color.Gray

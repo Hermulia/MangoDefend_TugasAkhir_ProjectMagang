@@ -16,7 +16,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://date-navigate-roommate-obtaining.trycloudflare.com/"
+    private const val BASE_URL = "https://repository-briefing-installation-string.trycloudflare.com/"
 
     @Provides
     @Singleton

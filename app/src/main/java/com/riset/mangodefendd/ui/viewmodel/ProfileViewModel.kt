@@ -58,14 +58,14 @@ class ProfileViewModel @Inject constructor(
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Gagal memuat profil: ${profileResponse.code()}",
+                        errorMessage = "Failed to load profile: ${profileResponse.code()}",
                         activeSubscription = activeSub
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Terjadi kesalahan"
+                    errorMessage = e.message ?: "An error occurred"
                 )
             }
         }
@@ -86,18 +86,18 @@ class ProfileViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
                         profile = response.body()!!.data,
-                        successMessage = "Profil berhasil diperbarui!"
+                        successMessage = "Profile updated successfully!"
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
-                        errorMessage = "Gagal menyimpan profil: ${response.code()}"
+                        errorMessage = "Failed to save profile: ${response.code()}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    errorMessage = e.message ?: "Terjadi kesalahan"
+                    errorMessage = e.message ?: "An error occurred"
                 )
             }
         }

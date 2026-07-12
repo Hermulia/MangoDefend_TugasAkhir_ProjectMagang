@@ -38,7 +38,7 @@ interface ScanResultDao {
     @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'SUSPICIOUS'")
     fun getSuspiciousCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'SAFE' OR UPPER(status) = 'TERHAPUS' OR UPPER(status) = 'DELETED'")
+    @Query("SELECT COUNT(*) FROM scan_results WHERE UPPER(status) = 'SAFE' OR UPPER(status) = 'DELETED' OR UPPER(status) = 'TERHAPUS'")
     fun getSafeCount(): Flow<Int>
 
     @Query("SELECT MAX(scanDate) FROM scan_results")

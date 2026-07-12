@@ -75,15 +75,15 @@ class AuthViewModel @Inject constructor(
 
     fun signOut() {
         viewModelScope.launch {
-            // Hentikan scan yang sedang berjalan
+            // Stop ongoing scans
             workManager.cancelUniqueWork("total_scan")
 
-            // Hentikan perlindungan real-time
+            // Stop real-time protection
             try {
                 val intent = Intent(context, RealtimeMonitorService::class.java)
                 context.stopService(intent)
             } catch (e: Exception) {
-                // Abaikan jika gagal berhenti
+                // Ignore if fail to stop
             }
 
             authManager.signOut()

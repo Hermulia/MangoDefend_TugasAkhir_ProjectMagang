@@ -70,7 +70,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Lihat Fitur Dulu (Guest Mode)")
+            Text("Continue as Guest")
         }
 
         Spacer(modifier = Modifier.height(16.dp))

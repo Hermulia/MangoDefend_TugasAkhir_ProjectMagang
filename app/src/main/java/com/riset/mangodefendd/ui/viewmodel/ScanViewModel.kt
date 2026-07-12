@@ -93,7 +93,7 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             repo.deletePhysicalFile(result.filePath)
             val updated = result.copy(
-                status = "Terhapus",
+                status = "Deleted",
                 actionTaken = "Deleted"
             )
             repo.updateHistoryItem(updated)

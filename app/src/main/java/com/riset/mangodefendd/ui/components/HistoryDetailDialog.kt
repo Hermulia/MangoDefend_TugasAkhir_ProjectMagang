@@ -23,7 +23,7 @@ fun HistoryDetailDialog(
 ) {
     val isDangerous = result.status.uppercase() == "DANGEROUS"
     val isSuspicious = result.status.uppercase() == "SUSPICIOUS"
-    val isDeleted = result.status.uppercase() == "TERHAPUS" || result.status.uppercase() == "DELETED"
+    val isDeleted = result.status.uppercase() == "DELETED" || result.status.uppercase() == "TERHAPUS"
     val canDelete = (isDangerous || isSuspicious) && !isDeleted
 
     val displayPath = if (result.filePath.startsWith("content://")) {
